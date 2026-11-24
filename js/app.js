@@ -101,9 +101,18 @@
     document.querySelectorAll('[data-kind]').forEach(el => { el.hidden = el.dataset.kind !== S.kind; });
     $('#kNote').textContent = KINDS[S.kind];
     $('#engBL').textContent = S.kind === 'waffle' ? 'Engrave where each section crosses a building' : 'Engrave the building footprints';
-    save(); summary(); $('#dl').innerHTML = '';
+    save(); summary(); $('#dl').innerHTML = ''; if (typeof platUI === 'function' && $('#lPlat')) platUI();
   }
   document.querySelectorAll('[data-k]').forEach(b => b.onclick = () => kind(b.dataset.k));
+  function platUI() {
+    $('#pStepRow').hidden = $('#pPlatNote').hidden = !$('#pPlat').checked;
+    const on = $('#lPlat').checked, w = S.kind === 'waffle';
+    $('#lStepRow').hidden = !(on && w); $('#lPlatNote').hidden = !on;
+    $('#lPlatNote').textContent = w ? 'Inside each footprint the sections are cut flat at the contour level at or below its lowest point.'
+      : 'Each footprint is cut out of every layer above the layer under its lowest point, so the building stands on a level platform. The platform layer keeps the engraved outline.';
+    $('#dl').innerHTML = '';
+  }
+  ['#pPlat', '#lPlat', '#pStep', '#lStep'].forEach(s => $(s).addEventListener('change', platUI));
   $('#engB').onchange = () => { $('#engN').disabled = !$('#engB').checked; };
   document.querySelectorAll('#board, #sheet, #interval, #vex, #base, #spacing').forEach(x => x.addEventListener('change', summary));
 
@@ -129,7 +138,7 @@
     el.textContent = t; el.classList.toggle('warn', !ok); $('#make').disabled = !ok;
     return ok;
   }
-  product(S.p); kind(S.kind);
+  product(S.p); kind(S.kind); platUI();
 
   // ---------------------------------------------------------------- 3D view
   const cv = $('#v3d'), R = new THREE.WebGLRenderer({ canvas: cv, antialias: true });
@@ -268,22 +277,23 @@
   const base = () => ({ DATA, sq: sq(), scale: scale(), name: S.name, tag: tag() });
 
   async function makePrint() {
-    const o = Object.assign(base(), { vex: +$('#vex').value, roads: $('#roads').checked, water: $('#water').checked, base: +$('#base').value, marks: document.querySelector('[name=marks]:checked').value });
+    const o = Object.assign(base(), { vex: +$('#vex').value, roads: $('#roads').checked, water: $('#water').checked, base: +$('#base').value, marks: document.querySelector('[name=marks]:checked').value, platforms: $('#pPlat').checked, platStep: +$('#pStep').value });
     const r = await Outputs.print(o, prog);
     $('#dl').innerHTML = '';
     if (r.meshes.length === 1) { link(o.tag + '.3mf', r.meshes[0].b3, 'Download 3MF'); }
     link(o.tag + (r.meshes.length > 1 ? `_${r.t.n}x${r.t.n}_tiles` : '') + '.zip', r.blob, r.meshes.length > 1 ? `Download all ${r.meshes.length} tiles (ZIP)` : 'ZIP: 3MF, STL, plan and heights');
     const fp = r.meshes.reduce((s, x) => s + x.m.info.footprints, 0);
-    st(`${r.meshes.length > 1 ? r.meshes.length + ' tiles of ' + fmtN(r.t.tile, 1) + ' mm' : fmtN(r.t.mm) + ' mm square'}, up to ${fmtN(r.height, 1)} mm high, datum ${r.datum} m OD. ${o.marks === 'off' ? 'No footprints marked.' : fmtN(fp) + ' footprints marked.'} Watertight. The ZIP also has the numbered plan and the table of heights.`);
+    const np = r.meshes.reduce((s, x) => s + (x.m.info.platforms || 0), 0);
+    st(`${r.meshes.length > 1 ? r.meshes.length + ' tiles of ' + fmtN(r.t.tile, 1) + ' mm' : fmtN(r.t.mm) + ' mm square'}, up to ${fmtN(r.height, 1)} mm high, datum ${r.datum} m OD. ${o.marks === 'off' ? 'No footprints marked.' : fmtN(fp) + ' footprints marked.'}${o.platforms ? ` ${fmtN(np)} level platforms cut.` : ''} Watertight. The ZIP also has the numbered plan and the table of heights.`);
     showMeshes(r.meshes, r.t);
   }
   async function makeLaser() {
-    const o = Object.assign(base(), { kind: S.kind, board: +$('#board').value, sheet: $('#sheet').value.split('x').map(Number), spacing: +$('#spacing').value, engrave: $('#engB').checked, numbers: $('#engN').checked });
+    const o = Object.assign(base(), { kind: S.kind, board: +$('#board').value, sheet: $('#sheet').value.split('x').map(Number), spacing: +$('#spacing').value, engrave: $('#engB').checked, numbers: $('#engN').checked, platforms: $('#lPlat').checked, platStep: +$('#lStep').value });
     const r = await Outputs.laserKit(o, prog);
     $('#dl').innerHTML = ''; link(o.tag + `_${o.kind}_${o.board}mm.zip`, r.blob, 'Download the kit (ZIP)');
     const sh = `${r.pk.count} sheet${r.pk.count > 1 ? 's' : ''} of ${o.sheet.join(' × ')} mm`;
     st(o.kind === 'waffle' ? `${r.W.pieces.length} sections (${r.W.pieces.length / 2} A + ${r.W.pieces.length / 2} B) of ${o.board} mm, ${fmtN(r.W.spacing, 1)} mm apart, on ${sh}.${o.engrave ? ` ${r.nB} building crossings engraved.` : ''}`
-      : `${r.M.layers.length} ${o.kind} layers of ${o.board} mm on ${sh}. Each layer is ${fmtN(r.layerM, 2)} m of ground.${o.engrave ? ` ${r.nB} footprints engraved.` : ''}`);
+      : `${r.M.layers.length} ${o.kind} layers of ${o.board} mm on ${sh}. Each layer is ${fmtN(r.layerM, 2)} m of ground.${o.engrave ? ` ${r.nB} footprints engraved.` : ''}${o.platforms ? ` ${r.nP} platforms cut out.` : ''}`);
     showSVG(r.svg0);
   }
   async function makeMap() {

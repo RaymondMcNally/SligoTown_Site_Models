@@ -20,6 +20,15 @@ Buildings are **shown on the website only**: in the 3D view, as massing. Footpri
 
 The same numbering is used in the plan, the laser kit, the 3D view, the PDF table and the CSV. Buildings are numbered in ten bands from the north edge of the square, west to east within each band. A building belongs to the square when its label point is inside it.
 
+## Level building platforms (option)
+
+On the 3D print and all three laser kits, a switch cuts a level platform for each building. The platform is at the contour at or below the lowest ground under the footprint, so cutting only ever removes material and never builds up. The lowest ground is read at the footprint's corners and on a grid of about 20 × 20 points inside it.
+
+- **3D print:** each footprint is cut down to its platform with an exact prism (manifold-3d). The contour step is 0.5, 1 or 2 m.
+- **Hollow and solid layers:** each footprint is subtracted (an exact 2D boolean) from every layer above the layer under its lowest ground. The building then stands on that layer, where its outline is engraved.
+- **Waffle:** the sections read a ground surface that is cut flat inside each footprint, with a contour step of 0.5, 1 or 2 m.
+- **Tables:** the heights table and CSV gain a `Platform` column (m OD).
+
 ## Outputs
 
 | Output | Files |

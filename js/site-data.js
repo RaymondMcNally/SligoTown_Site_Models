@@ -79,6 +79,35 @@
     return out;
   }
 
+  // ---------------------------------------------------------------- building platforms
+  // lowest ground under a footprint: its corners plus a grid of points inside (about 20 across), cached on the record
+  function minGround(DATA, b) {
+    if (b.min != null) return b.min;
+    let m = Infinity; const D = DATA.D, take = (x, y) => { const z = D.sample(x, y); if (z === z && z < m) m = z; };
+    b.polys.forEach(p => p[0].forEach(([x, y]) => take(x, y)));
+    const [x0, y0, x1, y1] = b.box, st = Math.max(.5, Math.max(x1 - x0, y1 - y0) / 20);
+    for (let x = x0 + st / 2; x < x1; x += st) for (let y = y0 + st / 2; y < y1; y += st) if (b.polys.some(p => inPoly([x, y], p))) take(x, y);
+    return (b.min = m === Infinity ? b.ground : m);
+  }
+  // the level a building's platform is cut to: the contour (multiple of step) at or below its lowest ground
+  const platformLevel = (DATA, b, step) => Math.floor(minGround(DATA, b) / step + 1e-9) * step;
+  // a ground sampler with every footprint in the square cut down to its platform level (for the waffle)
+  function platformSampler(DATA, sq, levelOf) {
+    const C = 10, cells = new Map(), key = (i, j) => i * 100000 + j;
+    footprintsIn(DATA, sq).forEach(f => {
+      const L = levelOf(f.b), [x0, y0, x1, y1] = f.b.box;
+      for (let i = Math.floor(x0 / C); i <= Math.floor(x1 / C); i++) for (let j = Math.floor(y0 / C); j <= Math.floor(y1 / C); j++) {
+        const k = key(i, j); (cells.get(k) || cells.set(k, []).get(k)).push({ polys: f.b.polys, L });
+      }
+    });
+    return { sample(x, y) {
+      let z = DATA.D.sample(x, y); if (z !== z) return z;
+      const list = cells.get(key(Math.floor(x / C), Math.floor(y / C)));
+      if (list) for (const f of list) if (f.L < z && f.polys.some(p => inPoly([x, y], p))) z = f.L;
+      return z;
+    } };
+  }
+
   // lowest and highest ground in the square, read every metre or so
   function groundRange(DATA, sq) {
     const n = Math.min(400, Math.max(20, Math.round(sq.g))); let lo = Infinity, hi = -Infinity, miss = 0;
@@ -154,5 +183,5 @@
     };
   }
 
-  root.SiteData = { load, numbered, footprintsIn, groundRange, chain, dxf, sitePack, clipPoly, clipRing, labelPoint, inPoly, area, boxHits };
+  root.SiteData = { minGround, platformLevel, platformSampler, load, numbered, footprintsIn, groundRange, chain, dxf, sitePack, clipPoly, clipRing, labelPoint, inPoly, area, boxHits };
 })(window);

@@ -119,13 +119,15 @@ ${txt.map(([x, y, s, t, fam]) => `<text x="${x + 6}" y="${y}" font-size="${s}" f
     key.forEach(([f, s, t], i) => { if ((i === 0 && !o.buildings) || (i === 1 && !o.roads) || (i === 2 && !o.water)) return; doc.setFillColor(...hex(f)); doc.setDrawColor(...hex(s)); doc.setLineWidth(.2); doc.rect(panel + 6, ly + i * 6 - 3, 6, 4, 'FD'); doc.text(t, panel + 15, ly + i * 6); });
     doc.setDrawColor(...hex('#7a5a3a')); doc.setLineWidth(.3); doc.line(panel + 6, ly + 17, panel + 12, ly + 17); doc.text('Contour, index / intermediate', panel + 15, ly + 18);
     if (o.buildings && o.numbers && list.length && !kit) tablePages(doc, list, o, E0, N0, G.size);
-    const csv = tableCSV(list, DATA);
+    const csv = tableCSV(list, DATA, o.platOf);
     return { svg, pdf: doc.output('blob'), list, csv, G, paper: pname, nEst, tablePDF: () => { const d = new jsPDF({ unit: 'mm', format: 'a4' }); tablePages(d, list, o, E0, N0, G.size, true); return d.output('blob'); } };
   }
 
   // table of building heights, A4 portrait, 52 rows a page
   function tablePages(doc, list, o, E0, N0, size, first) {
-    const cols = [['No.', 12, 'n'], ['Use', 52, 'use'], ['Ground', 19, 'ground'], ['Eaves', 19, 'eave'], ['Roof', 19, 'roof'], ['Top', 19, 'top'], ['Height', 18, 'h'], ['Source', 22, 'src']];
+    const cols = o.platOf ? [['No.', 12, 'n'], ['Use', 38, 'use'], ['Ground', 19, 'ground'], ['Eaves', 19, 'eave'], ['Roof', 19, 'roof'], ['Top', 19, 'top'], ['Height', 18, 'h'], ['Platform', 18, 'plat'], ['Source', 18, 'src']]
+      : [['No.', 12, 'n'], ['Use', 52, 'use'], ['Ground', 19, 'ground'], ['Eaves', 19, 'eave'], ['Roof', 19, 'roof'], ['Top', 19, 'top'], ['Height', 18, 'h'], ['Source', 22, 'src']];
+    const num = i => i >= 2 && i < cols.length - 1;
     const rowsPer = 52, pages = Math.ceil(list.length / rowsPer);
     for (let p = 0; p < pages; p++) {
       if (!(first && p === 0)) doc.addPage('a4', 'portrait');
@@ -133,16 +135,19 @@ ${txt.map(([x, y, s, t, fam]) => `<text x="${x + 6}" y="${y}" font-size="${s}" f
       doc.setFont('times', 'bold'); doc.setFontSize(15); doc.text(`${o.name || 'Sligo site'}: building heights`, x0, y);
       doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); y += 6;
       doc.text(`1:${fmtN(o.scale)} plan · ${fmtN(size, 1)} m square, SW corner ITM E ${fmtN(E0)}, N ${fmtN(N0)} · page ${p + 1} of ${pages}`, x0, y); y += 4.5;
-      doc.text('Levels in m OD (Malin Head). Height = roof level minus ground level. Eaves, roof and top are blank where there is no survey.', x0, y); y += 7;
+      doc.text('Levels in m OD (Malin Head). Height = roof level minus ground level. Eaves, roof and top are blank where there is no survey.', x0, y); y += 4.5;
+      if (o.platOf) { doc.text('Platform = the level the model is cut to inside the footprint (the contour at or below its lowest ground).', x0, y); y += 4.5; }
+      y += 2.5;
       doc.setFont('helvetica', 'bold'); let x = x0;
-      cols.forEach(([t, w], i) => { doc.text(t, i >= 2 && i <= 6 ? x + w - 2 : x, y, { align: i >= 2 && i <= 6 ? 'right' : 'left' }); x += w; });
+      cols.forEach(([t, w], i) => { doc.text(t, num(i) ? x + w - 2 : x, y, { align: num(i) ? 'right' : 'left' }); x += w; });
       doc.setLineWidth(.3); doc.line(x0, y + 1.5, x, y + 1.5); y += 5.6;
       doc.setFont('helvetica', 'normal');
       list.slice(p * rowsPer, (p + 1) * rowsPer).forEach((b, k) => {
         if (k % 2) { doc.setFillColor(243, 241, 236); doc.rect(x0, y - 3.4, x - x0, 4.6, 'F'); }
         let cx = x0;
-        const v = { n: String(b.n), use: b.use.length > 30 ? b.use.slice(0, 28) + '...' : b.use, ground: lv(b.ground), eave: lv(b.eave), roof: lv(b.roof), top: lv(b.top), h: b.h.toFixed(1), src: b.est ? 'estimated*' : 'survey' };
-        cols.forEach(([, w, f], i) => { doc.text(v[f], i >= 2 && i <= 6 ? cx + w - 2 : cx, y, { align: i >= 2 && i <= 6 ? 'right' : 'left' }); cx += w; });
+        const ul = o.platOf ? 22 : 30;
+        const v = { plat: o.platOf ? lv(o.platOf(b)) : '', n: String(b.n), use: b.use.length > ul ? b.use.slice(0, ul - 2) + '...' : b.use, ground: lv(b.ground), eave: lv(b.eave), roof: lv(b.roof), top: lv(b.top), h: b.h.toFixed(1), src: b.est ? 'estimated*' : 'survey' };
+        cols.forEach(([, w, f], i) => { doc.text(v[f], num(i) ? cx + w - 2 : cx, y, { align: num(i) ? 'right' : 'left' }); cx += w; });
         y += 4.6;
       });
       doc.setFontSize(7.5); doc.setTextColor(80);
@@ -150,10 +155,10 @@ ${txt.map(([x, y, s, t, fam]) => `<text x="${x + 6}" y="${y}" font-size="${s}" f
       doc.setTextColor(0);
     }
   }
-  function tableCSV(list, DATA) {
+  function tableCSV(list, DATA, platOf) {
     const q = s => /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-    return 'no,use,ground_m_OD,eaves_m_OD,roof_m_OD,top_m_OD,height_m,source,footprint_m2,ITM_E,ITM_N\n' +
-      list.map(b => [b.n, q(b.use), lv(b.ground), lv(b.eave), lv(b.roof), lv(b.top), b.h.toFixed(2), b.est ? 'estimated' : 'survey', b.fp, (DATA.X0 + b.at[0]).toFixed(1), (DATA.Y0 + b.at[1]).toFixed(1)].join(',')).join('\n') + '\n';
+    return 'no,use,ground_m_OD,eaves_m_OD,roof_m_OD,top_m_OD,height_m,' + (platOf ? 'platform_m_OD,' : '') + 'source,footprint_m2,ITM_E,ITM_N\n' +
+      list.map(b => [b.n, q(b.use), lv(b.ground), lv(b.eave), lv(b.roof), lv(b.top), b.h.toFixed(2)].concat(platOf ? [lv(platOf(b))] : [], [b.est ? 'estimated' : 'survey', b.fp, (DATA.X0 + b.at[0]).toFixed(1), (DATA.Y0 + b.at[1]).toFixed(1)]).join(',')).join('\n') + '\n';
   }
 
   // DXF of the plan for CAD: contours (index and intermediate) and footprints at their levels, numbers, the square; ITM metres
@@ -183,15 +188,30 @@ ${txt.map(([x, y, s, t, fam]) => `<text x="${x + 6}" y="${y}" font-size="${s}" f
     const M = MyModel.buildModel(DATA.D, { x0: sq.x0, y0: sq.y0, size: sq.g }, board, { scale, hollow, rim: 15 });
     if (!M.layers.length) throw new Error('This square is flat at this board thickness: try a thinner board or a larger scale.');
     const G = M.G, sqG = { x0: G.x0, y0: G.y0, g: G.size }, layerOf = gr => { let i = M.layers.length - 1; while (i > 0 && M.layers[i].L > gr) i--; return M.layers[i].L > gr ? -1 : i; };
-    let nB = 0;
+    // the layer a building stands on: with platforms, the layer under its lowest ground; otherwise the one under its median ground
+    const standOn = b => layerOf(o.platforms ? SiteData.minGround(DATA, b) : b.ground);
+    let nB = 0, nP = 0;
+    if (o.platforms) {                                                       // cut each footprint out of every layer above its platform layer
+      prog('Cutting the building platforms…', .25); await tick();
+      const MF = await Print3D.manifold(), toMM = r => r.map(([x, y]) => [(x - G.x0) * K, (y - G.y0) * K]);
+      const fps = SiteData.footprintsIn(DATA, sqG).map(({ b, polys }) => ({ j: standOn(b), cs: new MF.CrossSection(polys.flatMap(p => p.map(toMM)), 'EvenOdd') })).filter(f => f.cs.area() > .5);
+      nP = fps.length;
+      M.layers.forEach((ly, i) => {
+        const cut = fps.filter(f => f.j < i); if (!cut.length) return;
+        const piece = new MF.CrossSection(ly.loops, 'EvenOdd'), hole = MF.CrossSection.union(cut.map(f => f.cs)), rest = piece.subtract(hole);
+        ly.loops = rest.toPolygons().filter(r => Math.abs(SiteData.area(r)) > .5);
+        piece.delete(); hole.delete(); rest.delete();
+      });
+      fps.forEach(f => f.cs.delete());
+    }
     if (o.engrave) {                                                         // footprints (and numbers) engraved on the layer each building stands on
       SiteData.footprintsIn(DATA, sqG).forEach(({ b, polys }) => {
-        const i = layerOf(b.ground); if (i < 0) return;
+        const i = standOn(b); if (i < 0) return;
         polys.forEach(p => p.forEach(r => { const pts = r.map(([x, y]) => [(x - G.x0) * K, (y - G.y0) * K]); pts.push(pts[0]); M.layers[i].engrave.push(pts); }));
         nB++;
       });
       if (o.numbers) SiteData.numbered(DATA, sqG).forEach(b => {
-        const i = layerOf(b.ground); if (i < 0) return;
+        const i = standOn(b); if (i < 0) return;
         const t = MyModel.strokeText(String(b.n), 1.6), cx = (b.at[0] - G.x0) * K, cy = (b.at[1] - G.y0) * K;
         t.lines.forEach(l => M.layers[i].engrave.push(l.map(([x, y]) => [cx + x, cy + y])));
       });
@@ -203,15 +223,17 @@ ${txt.map(([x, y, s, t, fam]) => `<text x="${x + 6}" y="${y}" font-size="${s}" f
     const zip = new JSZip(), title = `${o.name || 'Sligo'} 1:${scale} ${board} mm ${hollow ? 'hollow' : 'solid'}`;
     for (let i = 0; i < pk.count; i++) { const nn = String(i + 1).padStart(2, '0'); zip.file(`sheet_${nn}.svg`, MyModel.toSVG(pk, i, `${title} sheet ${nn}`)); zip.file(`sheet_${nn}.dxf`, MyModel.toDXF(pk, i)); }
     const layerM = board / K;
+    if (o.platforms) o = Object.assign({}, o, { platOf: b => { const j = standOn(b); return j < 0 ? M.base : M.layers[j].L; } });
     const plan = addPlan(zip, o, +layerM.toFixed(3));
     zip.file('README.txt', `${title} contour kit\r\nSquare: ${fmtN(G.size, 1)} m, SW corner ITM E ${Math.round(DATA.X0 + G.x0)}, N ${Math.round(DATA.Y0 + G.y0)}\r\n` +
       `Board ${board} mm = ${fmtN(layerM, 2)} m of ground per layer at 1:${scale}; ${M.layers.length} layers on ${pk.count} sheets of ${sw} × ${sh} mm.\r\n` +
+      (o.platforms ? `Building platforms: each footprint is cut out of every layer above the layer under its lowest ground, so each building stands on a level platform (${nP} footprints). Platform levels are in building_heights.pdf / .csv.\r\n` : '') +
       (hollow ? `Hollow layers: each layer keeps a 15 mm strip under the layer above, so it uses less board. Keep the cut-out middles as offcuts.\r\n` : `Solid layers: every layer is a full piece, so the model is solid all through.\r\n`) +
       `Cut: red. Engrave: blue (the next layer's outline, layer numbers${o.engrave ? ', building footprints' + (o.numbers ? ' and building numbers' : '') : ''}). Engrave first as a light score, then cut.\r\n` +
       `Cut a base board ${fmtN(G.size * K)} × ${fmtN(G.size * K)} mm. Stack the layers in number order: each one sits on the blue line engraved on the layer below.\r\n` +
       README_TAIL);
     const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
-    return { blob, pk, M, layerM, nB, svg0: MyModel.toSVG(pk, 0, 'sheet 1'), plan };
+    return { blob, pk, M, layerM, nB, nP, svg0: MyModel.toSVG(pk, 0, 'sheet 1'), plan };
   }
   const README_TAIL = `The building numbers match contour_plan.pdf and building_heights.pdf / .csv. Buildings are not part of the kit: make them yourself at their heights.\r\n` +
     `Ground: 2006 Sligo survey and OPW 2011 lidar (CC BY 4.0). Buildings: Tailte Éireann. Roads and water: OpenStreetMap contributors.\r\nMade with Sligo Site Models, ATU Sligo Department of Architecture.\r\n`;
@@ -229,7 +251,9 @@ ${txt.map(([x, y, s, t, fam]) => `<text x="${x + 6}" y="${y}" font-size="${s}" f
     prog('Cutting the sections…', .15); await tick();
     MyModel.setScale(scale);
     const { lo } = SiteData.groundRange(DATA, sq);
-    const W = MyModel.buildWaffle(DATA.D, { x0: sq.x0, y0: sq.y0, size: sq.g }, { scale, board, spacing: o.spacing, base: 10, datum: Math.floor(lo) - 1 });
+    let D = DATA.D;
+    if (o.platforms) { const levelOf = b => SiteData.platformLevel(DATA, b, o.platStep); D = SiteData.platformSampler(DATA, sq, levelOf); o = Object.assign({}, o, { platOf: levelOf }); }
+    const W = MyModel.buildWaffle(D, { x0: sq.x0, y0: sq.y0, size: sq.g }, { scale, board, spacing: o.spacing, base: 10, datum: Math.floor(lo) - 1 });
     if (W.error) throw new Error('There is no ground in this square.');
     const G = W.G, S = W.size, sqG = { x0: G.x0, y0: G.y0, g: G.size };
     let nB = 0;
@@ -273,6 +297,7 @@ ${txt.map(([x, y, s, t, fam]) => `<text x="${x + 6}" y="${y}" font-size="${s}" f
       `${nA} A sections run west to east (A1 at the south edge) and are slotted from below; ${nA} B sections run south to north (B1 at the west edge) and are slotted from above.\r\n` +
       `Sections ${fmtN(W.spacing, 1)} mm apart = ${fmtN(W.spacing / K, 1)} m on the ground. A ${W.base} mm solid strip runs under ${Math.floor(lo) - 1} m OD. Heights true scale; tallest piece ${fmtN(W.height, 1)} mm.\r\n` +
       `Every piece is engraved with its name and an arrow pointing east (A) or north (B).${o.engrave ? ' Where a section crosses a building, a line is engraved 1.5 mm under the ground line between ticks at the walls, with the building number under it where it fits.' : ''}\r\n` +
+      (o.platforms ? `Building platforms: inside each footprint the sections are cut level at the ${o.platStep} m contour at or below its lowest ground. Platform levels are in building_heights.pdf / .csv.\r\n` : '') +
       `Slot each B piece down over the A pieces, matching the names to section_key.svg. ${pk.count} sheets of ${sw} × ${sh} mm. Cut: red. Engrave: blue.\r\n` + README_TAIL);
     const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
     return { blob, pk, W, nB, svg0, plan };
@@ -297,15 +322,21 @@ ${txt.map(([x, y, s, t, fam]) => `<text x="${x + 6}" y="${y}" font-size="${s}" f
     const { DATA, sq, scale } = o, t = tilesFor(sq, scale), tm = sq.g / t.n;
     const { lo, hi } = SiteData.groundRange(DATA, sq), datum = Math.floor(lo) - 1;
     const meshes = [], zip = new JSZip(), base = o.base, tagBase = o.tag;
+    let platforms = null;
+    if (o.platforms) {
+      const levelOf = b => SiteData.platformLevel(DATA, b, o.platStep);
+      platforms = SiteData.footprintsIn(DATA, sq).map(({ b }) => ({ polys: b.polys, level: levelOf(b) }));
+      o = Object.assign({}, o, { platOf: levelOf });
+    }
     for (let r = 0; r < t.n; r++) for (let c = 0; c < t.n; c++) {
       const id = t.n > 1 ? `${colName(c)}${r + 1}` : '', k = r * t.n + c, of = t.n * t.n;
       const x0 = sq.x0 + c * tm, y0 = sq.y0 + (t.n - 1 - r) * tm;                // rows 1, 2… from the north
-      const m = await Print3D.build({ x0, y0, size: tm, scale, stepMM: Math.max(0.4, Math.min(1, 250 / scale)), vex: o.vex, roads: o.roads, water: o.water, base, datum, marks: o.marks,
+      const m = await Print3D.build({ x0, y0, size: tm, scale, stepMM: Math.max(0.4, Math.min(1, 250 / scale)), vex: o.vex, roads: o.roads, water: o.water, base, datum, marks: o.marks, platforms,
         sample: DATA.D.sample, data: { buildings: DATA.B, roads: DATA.roads, water: DATA.water } },
         (txt, f) => prog(of > 1 ? `Tile ${id} (${k + 1} of ${of}): ${txt.toLowerCase()}` : txt, (k + f) / of * .92));
       const name = tagBase + (id ? '_' + id : '');
       const meta = { Title: `${o.name || 'Sligo'} 1:${scale}${id ? ' tile ' + id : ''}`, Designer: 'Sligo Site Models · ATU Sligo Architecture',
-        Description: `ITM SW corner ${Math.round(DATA.X0 + x0)}, ${Math.round(DATA.Y0 + y0)}; datum ${datum} m OD at the base top; ground ×${o.vex}; footprints: ${o.marks}` };
+        Description: `ITM SW corner ${Math.round(DATA.X0 + x0)}, ${Math.round(DATA.Y0 + y0)}; datum ${datum} m OD at the base top; ground ×${o.vex}; footprints: ${o.marks}${o.platforms ? '; building platforms every ' + o.platStep + ' m' : ''}` };
       const z3 = new JSZip(); Object.entries(MyModel.print3MFParts(m, meta)).forEach(([kk, v]) => z3.file(kk, v));
       const b3 = await z3.generateAsync({ type: 'blob', compression: 'DEFLATE' });
       zip.file(name + '.3mf', b3); zip.file(name + '.stl', MyModel.printSTL(m, name));
@@ -322,6 +353,7 @@ ${txt.map(([x, y, s, t, fam]) => `<text x="${x + 6}" y="${y}" font-size="${s}" f
       (t.n > 1 ? `${t.n * t.n} tiles of ${fmtN(t.tile, 1)} mm: columns A, B, C… west to east, rows 1, 2, 3… north to south. All tiles share one datum, so their edges meet flush.\r\n` : '') +
       `Base ${base} mm under ${datum} m OD; ground heights ${o.vex === 1 ? 'true scale' : '×' + o.vex}; tallest point ${fmtN(tH, 1)} mm.\r\n` +
       `Buildings are not printed. Footprints: ${{ incise: 'incised outline 0.6 mm wide, 0.4 mm deep', raise: 'raised outline 0.6 mm wide, 0.4 mm high', pad: 'raised pad 0.4 mm high', off: 'not marked' }[o.marks]}.\r\n` +
+      (o.platforms ? `Building platforms: inside each footprint the ground is cut level at the ${o.platStep} m contour at or below its lowest ground (levels in building_heights.pdf / .csv).\r\n` : '') +
       `The plan PDF numbers the buildings; their heights are in building_heights.pdf / .csv.\r\n` +
       `Bambu P1S: matte white PLA, 0.2 mm layers (0.12 mm for fine footprint lines), 10–15% infill, no supports.\r\n` +
       `Ground: 2006 Sligo survey and OPW 2011 lidar (CC BY 4.0). Buildings: Tailte Éireann. Roads and water: OpenStreetMap contributors.\r\nMade with Sligo Site Models, ATU Sligo Department of Architecture.\r\n`);

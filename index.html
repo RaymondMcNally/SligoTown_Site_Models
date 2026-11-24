@@ -82,6 +82,9 @@
           <label><input type="radio" name="marks" value="pad"> Raised footprint pad (0.4 mm high)</label>
           <label><input type="radio" name="marks" value="off"> None</label>
         </fieldset>
+        <label class="row"><input type="checkbox" id="pPlat"> Cut a level platform for each building</label>
+        <label class="row sub" id="pStepRow" hidden>Platform at the contour below its lowest ground, every <select id="pStep"><option value="0.5">0.5 m</option><option value="1" selected>1 m</option><option value="2">2 m</option></select></label>
+        <p class="note sub" id="pPlatNote" hidden>Inside each footprint the ground is cut flat at the contour level at or below its lowest point, so your building model sits level. The footprint marks above still show the outlines.</p>
         <label class="row">Ground heights <select id="vex"><option value="1">true scale</option><option value="1.5">×1.5</option><option value="2">×2</option></select></label>
         <label class="row">Base under the lowest ground <select id="base"><option value="3">3 mm</option><option value="5" selected>5 mm</option><option value="8">8 mm</option></select></label>
         <label class="row"><input type="checkbox" id="roads" checked> Cut the roads in (0.3–0.8 mm)</label>
@@ -100,6 +103,9 @@
         <label class="row" data-kind="waffle" hidden>Section spacing <select id="spacing"><option value="15">15 mm</option><option value="20" selected>20 mm</option><option value="25">25 mm</option><option value="30">30 mm</option></select></label>
         <label class="row">Board <select id="board"><option value="1">1 mm card</option><option value="1.5">1.5 mm greyboard</option><option value="2" selected>2 mm board</option><option value="3">3 mm MDF</option><option value="5">5 mm foamboard</option></select></label>
         <label class="row">Sheet <select id="sheet"><option value="600x400">600 × 400 mm</option><option value="841x594" selected>A1, 841 × 594 mm</option><option value="1000x600">1000 × 600 mm</option></select></label>
+        <label class="row"><input type="checkbox" id="lPlat"> Cut a level platform for each building</label>
+        <label class="row sub" id="lStepRow" hidden>Platform at the contour below its lowest ground, every <select id="lStep"><option value="0.5">0.5 m</option><option value="1" selected>1 m</option><option value="2">2 m</option></select></label>
+        <p class="note sub" id="lPlatNote" hidden></p>
         <label class="row"><input type="checkbox" id="engB" checked> <span id="engBL">Engrave the building footprints</span></label>
         <label class="row sub"><input type="checkbox" id="engN" checked> Engrave the building numbers</label>
         <p class="note">Cut lines red, engraving blue, as SVG and DXF sheets. Every kit includes the contour plan with numbered buildings and the table of heights.</p>

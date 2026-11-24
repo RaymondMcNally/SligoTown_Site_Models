@@ -41,7 +41,7 @@
   const overlaps = (polys, o) => polys.some(p => p[0].some(([x, y]) => x > o.x0 - 50 && y > o.y0 - 50 && x < o.x0 + o.size + 50 && y < o.y0 + o.size + 50));
 
   /* opts: { x0, y0, size (m), scale, vex, roads, water, base (mm), datum (m OD, optional: shared by the tiles of one model),
-     marks: 'incise' | 'raise' | 'pad' | 'off', sample(x, y) → m OD, data: { buildings, roads, water } }
+     marks: 'incise' | 'raise' | 'pad' | 'off', platforms: [{ polys, level }] (optional: flat cut to level inside each footprint), sample(x, y) → m OD, data: { buildings, roads, water } }
      buildings.items: [use, ground, eave, roof, top, height, estimated, footprint, polygons] */
   async function build(opts, progress = () => { }) {
     await manifold();
@@ -114,11 +114,24 @@
         free(prism);
       }
     }
+    // level platforms: everything above each building's platform level is cut away inside its footprint
+    let nPlat = 0;
+    if (opts.platforms && opts.platforms.length) {
+      progress('Cutting the building platforms…', .85);
+      const cuts = [];
+      for (const pl of opts.platforms) {
+        if (!overlaps(pl.polys, o)) continue;
+        const cs = section(pl.polys, o, box); if (!cs) continue;
+        if (cs.area() < .5) { free(cs); continue; }
+        cuts.push(cs.extrude(ZTOP + 10).translate([0, 0, Math.max(zG(pl.level), base * .6)])); free(cs); nPlat++;
+      }
+      if (cuts.length) { const u = M.Manifold.union(cuts), s2 = solid.subtract(u); free(solid, u, ...cuts); solid = s2; }
+    }
     const clip = box.extrude(ZTOP + 400).translate([0, 0, -10]), s3 = solid.intersect(clip); free(solid, clip, box); solid = s3;
     progress('Writing the file…', .92);
     const mesh = solid.getMesh(), np = mesh.numProp, vp = mesh.vertProperties, nv = vp.length / np;
     const positions = new Float32Array(nv * 3); for (let i = 0; i < nv; i++) { positions[i * 3] = vp[i * np]; positions[i * 3 + 1] = vp[i * np + 1]; positions[i * 3 + 2] = vp[i * np + 2]; }
-    const info = { size: S, height: zG(hi), footprints: count, marks: mode, datum, lo, hi, volume: solid.volume() / 1000, genus: solid.genus(), tris: mesh.triVerts.length / 3 };
+    const info = { size: S, height: zG(hi), footprints: count, platforms: nPlat, marks: mode, datum, lo, hi, volume: solid.volume() / 1000, genus: solid.genus(), tris: mesh.triVerts.length / 3 };
     free(solid);
     return { positions, indices: mesh.triVerts, info };
   }
