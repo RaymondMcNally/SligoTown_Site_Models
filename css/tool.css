@@ -1,0 +1,45 @@
+/* Sligo Site Models: the model maker page */
+.mk-head { padding-top: 30px }
+.mk-head h1 { font-size: clamp(30px, 4vw, 46px) }
+.mk-chip { position: absolute; left: 12px; top: 12px; background: rgba(23,33,43,.9); color: #eef1f3; font: 500 12.5px var(--f-mono); padding: 6px 10px; border-radius: 4px; pointer-events: none; max-width: calc(100% - 140px) }
+.map-sw { position: absolute; right: 12px; top: 12px; display: flex; border-radius: 4px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.3) }
+.map-sw button { border: 0; background: rgba(23,33,43,.9); color: #d4dbe1; font: 500 12.5px var(--f-mono); padding: 6px 10px; cursor: pointer }
+.map-sw button[aria-pressed="true"] { background: var(--lichen); color: #fff }
+
+.views { margin-top: 16px }
+.views .tabs { display: flex; gap: 4px; align-items: end; flex-wrap: wrap }
+.views .tabs button { border: 1px solid var(--line); border-bottom: 0; background: var(--paper); color: var(--ink-2); font: 500 13.5px var(--f-body); padding: 8px 14px; border-radius: 6px 6px 0 0; cursor: pointer }
+.views .tabs button[aria-pressed="true"] { background: var(--deep); color: #fff; border-color: var(--deep) }
+.views .tabs .hint { margin-left: auto; font-size: 12.5px; color: var(--ink-2); padding-bottom: 6px }
+.stage { position: relative; background: var(--deep); border-radius: 0 6px 6px 6px; overflow: hidden; aspect-ratio: 16 / 9; border: 1px solid var(--deep) }
+.stage canvas { width: 100%; height: 100%; display: block }
+.stage .svgv { position: absolute; inset: 0; background: #fff; display: grid; place-items: center; overflow: hidden }
+.stage .svgv svg { width: 100%; height: 100% }
+.stage .tag { position: absolute; left: 10px; top: 10px; background: rgba(23,33,43,.85); color: #e8edf0; font: 500 12px/1.45 var(--f-mono); padding: 6px 9px; border-radius: 4px; max-width: 70%; pointer-events: none }
+.stage .tag.warn { background: rgba(181,83,47,.92); color: #fff }
+.stage .pick { position: absolute; right: 10px; top: 44px; background: #fff; color: var(--ink); font-size: 13px; padding: 9px 12px; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,.35); min-width: 190px }
+.stage .pick b { font: 600 15px var(--f-head) }
+.stage .pick table { border-collapse: collapse; margin-top: 4px; font: 12.5px var(--f-mono) }
+.stage .pick td { padding: 1px 8px 1px 0 }
+.stage .ctl { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 6px; align-items: center; background: rgba(23,33,43,.85); color: #e8edf0; font: 12.5px var(--f-mono); padding: 5px 8px; border-radius: 4px }
+.stage .ctl select { font: 12.5px var(--f-mono); padding: 2px 4px }
+.stage .ctl label { display: flex; gap: 5px; align-items: center }
+
+.panel .sum { background: var(--foam); border-radius: 4px; padding: 9px 11px; font: 13px/1.5 var(--f-mono); color: var(--ink) }
+.panel .sum.warn { background: #f8e4da; color: #7d2d12 }
+.panel input[type=text] { width: 100% }
+fieldset.opt { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px }
+fieldset.opt legend { font-size: 14px; margin-bottom: 4px; padding: 0 }
+fieldset.opt label { display: flex; gap: 8px; align-items: flex-start; font-size: 14.5px }
+fieldset.opt label input { margin-top: 3px; flex: none }
+.sub { padding-left: 25px }
+#dl { display: flex; flex-wrap: wrap; gap: 8px }
+#dl a { font-size: 13.5px }
+
+/* guide page */
+.guide { padding: 30px 0 50px }
+.guide h2 { margin-top: 1.4em }
+.guide table { border-collapse: collapse; font-size: 14.5px; margin: 0 0 1.2em; background: var(--paper) }
+.guide th, .guide td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top }
+.guide th { font: 500 12px var(--f-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-2) }
+.guide li { margin-bottom: .4em; max-width: 72ch }

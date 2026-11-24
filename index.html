@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Sligo Site Models · ATU Sligo Architecture</title>
+<meta name="description" content="Choose your site anywhere in the old Sligo borough and make a terrain model at 1:200 to 1:2500: a 3D print, a laser-cut contour kit or a contour plan with numbered buildings and their heights.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="vendor/maplibre-gl.css">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/site.css">
+<link rel="stylesheet" href="css/tool.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html"><b>Sligo Site Models</b><span>ATU Sligo · Department of Architecture</span></a>
+    <nav aria-label="Pages"><a href="index.html" aria-current="page">Make a site model</a><a href="guide.html">Guide and data</a></nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap mk-head">
+    <div class="eyebrow">Fifth year · site models</div>
+    <h1>Your site, <em>at any scale</em>.</h1>
+    <p class="lede">Put the square on your site anywhere in the old Sligo borough, choose a scale, and download the ground as a 3D print, a laser-cut contour kit or a contour plan. The buildings are shown here for context; the downloads carry only their footprints, numbered, with a table of heights.</p>
+  </div>
+  <div class="wrap tool">
+    <div>
+      <div class="mapbox">
+        <div id="map" aria-label="Map of the Sligo borough with the square for your site"></div>
+        <div class="mk-chip" id="where"></div>
+        <div class="map-sw" role="group" aria-label="Background map">
+          <button type="button" data-base="hs" aria-pressed="true">Relief</button><button type="button" data-base="osm" aria-pressed="false">Street map</button>
+        </div>
+      </div>
+      <div class="views">
+        <div class="tabs" role="group" aria-label="View">
+          <button type="button" data-v="site" aria-pressed="true">Site in 3D</button><button type="button" data-v="out" aria-pressed="false" disabled>Your download</button>
+          <span class="hint" id="vHint">Drag to turn, scroll to zoom. Click a building for its height.</span>
+        </div>
+        <div class="stage">
+          <canvas id="v3d" aria-label="3D view of the site"></canvas>
+          <div class="svgv" id="vSvg" hidden></div>
+          <div class="tag" id="vTag"></div>
+          <div class="pick" id="vPick" hidden></div>
+          <div class="ctl" id="vCtl">
+            <label>Heights <select id="vVex"><option value="1">true</option><option value="2">×2</option><option value="3">×3</option></select></label>
+            <label><input type="checkbox" id="vBld" checked> Buildings</label>
+            <label><input type="checkbox" id="vNum"> Numbers</label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="panel">
+      <div class="grp">
+        <span class="lab">1 · Your site</span>
+        <label class="row" style="flex-wrap:nowrap">Name <input type="text" id="name" placeholder="e.g. Quay Street" maxlength="40"></label>
+        <label class="row">Square <select id="ground"></select></label>
+        <p class="note">Drag the orange square onto your site, or double-click the map to jump it there.</p>
+      </div>
+
+      <div class="grp">
+        <span class="lab">2 · Make</span>
+        <div class="seg" role="group" aria-label="What to make">
+          <button type="button" data-p="print" aria-pressed="true">3D print</button>
+          <button type="button" data-p="laser" aria-pressed="false">Laser contours</button>
+          <button type="button" data-p="map" aria-pressed="false">Contour plan</button>
+        </div>
+        <label class="row">Scale <select id="scale"></select></label>
+        <div class="sum" id="sum"></div>
+      </div>
+
+      <div class="grp" data-for="print">
+        <span class="lab">3 · 3D print (terrain only)</span>
+        <fieldset class="opt"><legend>Building footprints on the ground</legend>
+          <label><input type="radio" name="marks" value="incise" checked> Incised outline (0.6 mm wide, 0.4 mm deep)</label>
+          <label><input type="radio" name="marks" value="raise"> Raised outline (0.4 mm high)</label>
+          <label><input type="radio" name="marks" value="pad"> Raised footprint pad (0.4 mm high)</label>
+          <label><input type="radio" name="marks" value="off"> None</label>
+        </fieldset>
+        <label class="row">Ground heights <select id="vex"><option value="1">true scale</option><option value="1.5">×1.5</option><option value="2">×2</option></select></label>
+        <label class="row">Base under the lowest ground <select id="base"><option value="3">3 mm</option><option value="5" selected>5 mm</option><option value="8">8 mm</option></select></label>
+        <label class="row"><input type="checkbox" id="roads" checked> Cut the roads in (0.3–0.8 mm)</label>
+        <label class="row"><input type="checkbox" id="water" checked> Recess the river, lough and harbour</label>
+        <p class="note">Matte white PLA, 0.2 mm layers, 10–15% infill, on the Bambu P1S. Larger squares are split into equal tiles of 230 mm or less that share one level datum, so they sit flush side by side.</p>
+      </div>
+
+      <div class="grp" data-for="laser" hidden>
+        <span class="lab">3 · Laser contour kit</span>
+        <label class="row">Board <select id="board"><option value="1">1 mm card</option><option value="1.5">1.5 mm greyboard</option><option value="2" selected>2 mm board</option><option value="3">3 mm MDF</option><option value="5">5 mm foamboard</option></select></label>
+        <label class="row">Sheet <select id="sheet"><option value="600x400">600 × 400 mm</option><option value="841x594" selected>A1, 841 × 594 mm</option><option value="1000x600">1000 × 600 mm</option></select></label>
+        <label class="row"><input type="checkbox" id="engB" checked> Engrave the building footprints</label>
+        <label class="row sub"><input type="checkbox" id="engN" checked> Engrave the building numbers</label>
+        <p class="note">Cut lines red, engraving blue, as SVG and DXF. The kit includes the contour plan with numbered buildings and the table of heights.</p>
+      </div>
+
+      <div class="grp" data-for="map" hidden>
+        <span class="lab">3 · Contour plan</span>
+        <label class="row">Contours every <select id="interval"><option value="0.5">0.5 m</option><option value="1" selected>1 m</option><option value="2">2 m</option><option value="5">5 m</option></select></label>
+        <label class="row"><input type="checkbox" id="mB" checked> Building footprints</label>
+        <label class="row sub"><input type="checkbox" id="mN" checked> Number them, with a table of heights</label>
+        <label class="row"><input type="checkbox" id="mR" checked> Roads</label>
+        <label class="row"><input type="checkbox" id="mW" checked> Water</label>
+        <label class="row"><input type="checkbox" id="mS" checked> Spot heights</label>
+        <p class="note">PDF (plan, then the table of building heights), SVG, a DXF for CAD (contours and footprints at their real levels, ITM metres), the table as CSV, and a site pack for the Site Model Hub.</p>
+      </div>
+
+      <div class="grp">
+        <button type="button" class="btn primary" id="make">Make it</button>
+        <div class="prog" id="prog" hidden><i></i></div>
+        <p class="status" id="status" role="status"></p>
+        <div id="dl"></div>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<footer class="foot"><div class="wrap"><span>Ground: 2006 Sligo survey and OPW 2011 lidar (Irish Public Sector Data, CC BY 4.0). Buildings and heights: Tailte Éireann. Roads and water: © OpenStreetMap contributors (ODbL).</span><span>Created by R McNally · ATU Sligo</span></div></footer>
+<script src="vendor/maplibre-gl.js"></script>
+<script src="vendor/three.min.js"></script>
+<script src="vendor/OrbitControls.js"></script>
+<script src="vendor/jszip.min.js"></script>
+<script src="vendor/jspdf.umd.min.js"></script>
+<script src="js/common.js"></script>
+<script src="js/model-core.js"></script>
+<script src="js/print3d.js"></script>
+<script src="js/site-data.js"></script>
+<script src="js/outputs.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

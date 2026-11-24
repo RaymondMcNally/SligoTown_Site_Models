@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Guide and data · Sligo Site Models</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/site.css">
+<link rel="stylesheet" href="css/tool.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html"><b>Sligo Site Models</b><span>ATU Sligo · Department of Architecture</span></a>
+    <nav aria-label="Pages"><a href="index.html">Make a site model</a><a href="guide.html" aria-current="page">Guide and data</a></nav>
+  </div>
+</header>
+<main class="wrap guide">
+  <div class="eyebrow">Guide and data</div>
+  <h1>Making your <em>site model</em></h1>
+  <p class="lede">The website cuts a square of ground from the model of the old Sligo borough, the circle one Irish mile around the Lady Erin monument on Market Street, and gives it to you as a 3D print, a laser-cut contour kit or a contour plan.</p>
+
+  <h2>Step by step</h2>
+  <ol>
+    <li><b>Find your site.</b> Use <i>Street map</i> to find streets by name, then <i>Relief</i> to see the ground. Drag the orange square onto your site, or double-click the map to jump it there.</li>
+    <li><b>Size the square.</b> Choose 40 to 500 m. Leave room around your site for context: the street, the river and the buildings opposite.</li>
+    <li><b>Look at it in 3D.</b> The view under the map shows the ground and the buildings. Click a building for its number and heights. <i>Heights ×2</i> or <i>×3</i> shows gentle slopes more clearly. The buildings are for viewing only and are never in the downloads.</li>
+    <li><b>Choose what to make and the scale.</b> The grey box says how big the model will be, how many print tiles or what paper size it needs, and how many buildings are in the square.</li>
+    <li><b>Make it</b>, check it under <i>Your download</i>, and download the files.</li>
+  </ol>
+
+  <h2>What the square makes at each scale</h2>
+  <table>
+    <tr><th>Square</th><th>1:200</th><th>1:500</th><th>1:1000</th><th>1:1250</th><th>1:2500</th></tr>
+    <tr><td>50 m</td><td>250 mm · 2 × 2 tiles</td><td>100 mm</td><td>50 mm</td><td>40 mm</td><td>20 mm</td></tr>
+    <tr><td>100 m</td><td>500 mm · 3 × 3 tiles</td><td>200 mm · 1 tile</td><td>100 mm</td><td>80 mm</td><td>40 mm</td></tr>
+    <tr><td>200 m</td><td>1000 mm (too big to print)</td><td>400 mm · 2 × 2 tiles</td><td>200 mm · 1 tile</td><td>160 mm</td><td>80 mm</td></tr>
+    <tr><td>500 m</td><td>—</td><td>1000 mm · 4 × 4 tiles</td><td>500 mm · 3 × 3 tiles</td><td>400 mm · 2 × 2 tiles</td><td>200 mm · 1 tile</td></tr>
+  </table>
+  <p class="note">The ground model is a 2 m grid. Use it for terrain at 1:500 and smaller. At 1:200 slopes are smooth: steps, kerbs and retaining walls are not in it, so survey those on site.</p>
+
+  <h2>The three downloads</h2>
+  <h3>3D print (terrain only)</h3>
+  <ul>
+    <li>A watertight 3MF and STL for the Bambu P1S, in millimetres. North is +Y and the origin is the south-west corner.</li>
+    <li><b>Buildings are not printed.</b> Their footprints are marked on the ground as an incised outline (0.6 mm wide, 0.4 mm deep), a raised outline, a raised pad, or not at all. Model the buildings yourself, at the heights in the table.</li>
+    <li>Roads are cut in 0.3 to 0.8 mm. The river, Lough Gill and the harbour are recessed 0.6 mm below their water level.</li>
+    <li>Squares over 230 mm are split into equal tiles (A, B, C… west to east; 1, 2, 3… north to south). All tiles of one model share one datum, so their edges meet flush.</li>
+    <li>The ZIP also has the numbered plan and the table of building heights.</li>
+  </ul>
+  <h3>Laser contour kit</h3>
+  <ul>
+    <li>One layer per board thickness, nested on sheets. Cut lines are red and engraving blue, in SVG and DXF.</li>
+    <li>Each building's footprint and number are engraved on the layer it stands on.</li>
+    <li>The kit has the contour plan, the table of heights (PDF and CSV) and a README.</li>
+  </ul>
+  <h3>Contour plan</h3>
+  <ul>
+    <li><b>PDF:</b> the plan on A3, A2, A1 or A0, with contours, footprints, roads, water, spot heights, an ITM grid, a scale bar and a north point. The table of building heights follows on A4 pages.</li>
+    <li><b>Building footprints</b> can be switched off, and their numbers switched off separately. Buildings are numbered across the square in bands from the north edge, west to east, so neighbours have neighbouring numbers.</li>
+    <li><b>SVG:</b> the plan, for Illustrator or Inkscape.</li>
+    <li><b>DXF:</b> for Rhino, AutoCAD, ArchiCAD or Revit.
+      <ul>
+        <li>Contours are 3D polylines at their own level (layers <code>CONTOUR</code> and <code>CONTOUR_INDEX</code>).</li>
+        <li>Footprints are at their ground level (<code>FOOTPRINT</code>). Numbers, water, roads and the square each have their own layer.</li>
+        <li>Coordinates are real ITM metres, so the file lines up with other Irish map data. In Rhino, move it to the origin if you need to.</li>
+      </ul></li>
+    <li><b>Heights CSV:</b> the table, with each building's ITM position.</li>
+    <li><b>Site pack:</b> load it on the Site Model Hub with <i>Import a site pack</i>, to use the contours, sun and climate, model kit and projection pages for your site.</li>
+  </ul>
+
+  <h2>The table of building heights</h2>
+  <table>
+    <tr><th>Column</th><th>What it is</th></tr>
+    <tr><td>No.</td><td>The number on the plan, the laser kit and the 3D view</td></tr>
+    <tr><td>Use</td><td>The building's function as recorded by Tailte Éireann</td></tr>
+    <tr><td>Ground</td><td>Ground level at the building, m OD (Malin Head)</td></tr>
+    <tr><td>Eaves</td><td>Eaves level, m OD</td></tr>
+    <tr><td>Roof</td><td>Main roof (ridge) level, m OD</td></tr>
+    <tr><td>Top</td><td>Highest point (chimney, spire, plant), m OD</td></tr>
+    <tr><td>Height</td><td>Roof level minus ground level, in metres</td></tr>
+    <tr><td>Source</td><td><i>survey</i>: Tailte Éireann building heights. <i>estimated</i>: no surveyed height. These come from the OPW 2011 lidar surface instead, capped at 4.5 m for footprints under 60 m² and 10 m for 60–300 m², where the lidar can pick up trees. Sheds without a usable lidar height get 3 m (under 30 m²) or 6 m. Estimated buildings show paler in the 3D view. Check them on site.</td></tr>
+  </table>
+
+  <h2>Data</h2>
+  <ul>
+    <li><b>Ground:</b> the 2006 Sligo survey DTM. Its gaps are filled from the OPW 2011 lidar DTM; the two agree to within 1 cm where they overlap. It is a 2 m grid, levels in m OD. Contains Irish Public Sector Data (OPW) licensed under CC BY 4.0.</li>
+    <li><b>Buildings and heights:</b> Tailte Éireann, with the estimated heights described above.</li>
+    <li><b>Roads and water:</b> © OpenStreetMap contributors (ODbL). The water levels are from the 1:2500 borough model.</li>
+    <li><b>Street map:</b> OpenStreetMap tiles. They need an internet connection; the relief map does not.</li>
+  </ul>
+  <p>The same data make the 1:2500 borough model for <i>As Water Arrives</i>, the 16th A-IARG conference at ATU Sligo (March 2027). The contour, laser and 3MF code comes from the Site Model Hub.</p>
+</main>
+<footer class="foot"><div class="wrap"><span>Ground: 2006 Sligo survey and OPW 2011 lidar (Irish Public Sector Data, CC BY 4.0). Buildings and heights: Tailte Éireann. Roads and water: © OpenStreetMap contributors (ODbL).</span><span>Created by R McNally · ATU Sligo</span></div></footer>
+</body>
+</html>
