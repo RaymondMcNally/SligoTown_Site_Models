@@ -90,8 +90,22 @@
   document.querySelectorAll('[data-p]').forEach(b => b.onclick = () => product(b.dataset.p));
   $('#scale').onchange = e => { S.scale[S.p] = +e.target.value; save(); summary(); $('#dl').innerHTML = ''; };
   $('#mB').onchange = () => { $('#mN').disabled = !$('#mB').checked; };
+  const KINDS = {
+    hollow: 'One layer per board thickness, hollowed under the layer above (a 15 mm glue strip) to save board. The cut-out middles are offcuts.',
+    solid: 'One full layer per board thickness: heavier and uses more board, but every layer is a solid piece, good for carving into or painting.',
+    waffle: 'An egg-crate of true sections, west–east (A) and south–north (B), slotted together. Quick to cut and light; shows the ground as sections.'
+  };
+  function kind(k) {
+    S.kind = KINDS[k] ? k : 'hollow';
+    document.querySelectorAll('[data-k]').forEach(b => b.setAttribute('aria-pressed', b.dataset.k === S.kind));
+    document.querySelectorAll('[data-kind]').forEach(el => { el.hidden = el.dataset.kind !== S.kind; });
+    $('#kNote').textContent = KINDS[S.kind];
+    $('#engBL').textContent = S.kind === 'waffle' ? 'Engrave where each section crosses a building' : 'Engrave the building footprints';
+    save(); summary(); $('#dl').innerHTML = '';
+  }
+  document.querySelectorAll('[data-k]').forEach(b => b.onclick = () => kind(b.dataset.k));
   $('#engB').onchange = () => { $('#engN').disabled = !$('#engB').checked; };
-  document.querySelectorAll('#board, #sheet, #interval, #vex, #base').forEach(x => x.addEventListener('change', summary));
+  document.querySelectorAll('#board, #sheet, #interval, #vex, #base, #spacing').forEach(x => x.addEventListener('change', summary));
 
   // what the chosen square makes at the chosen scale; returns false when it can't be made
   function summary() {
@@ -102,7 +116,8 @@
       else t = `${fmtN(mm)} mm square at 1:${fmtN(sc)}` + (tl.n > 1 ? ` → ${tl.n} × ${tl.n} tiles of ${fmtN(tl.tile, 1)} mm` : ', one tile') + `. Print grid ${fmtN(Math.max(0.4, Math.min(1, 250 / sc)), 1)} mm (ground data every 2 m).`;
     } else if (S.p === 'laser') {
       const b = +$('#board').value, lm = b * sc / 1000;
-      t = `${fmtN(mm)} mm square at 1:${fmtN(sc)}. Each ${b} mm layer is ${fmtN(lm, 2)} m of ground.`;
+      t = S.kind === 'waffle' ? `${fmtN(mm)} mm square at 1:${fmtN(sc)}. Sections about every ${$('#spacing').value} mm = ${fmtN(+$('#spacing').value * sc / 1000, 1)} m on the ground, in ${b} mm board.`
+        : `${fmtN(mm)} mm square at 1:${fmtN(sc)}. Each ${b} mm layer is ${fmtN(lm, 2)} m of ground.`;
       const [sw, sh] = $('#sheet').value.split('x').map(Number);
       if (mm > Math.max(sw, sh) - 16) { ok = false; t += ` The square is bigger than the sheet: choose a smaller scale, a smaller square or a bigger sheet.`; }
     } else {
@@ -114,7 +129,7 @@
     el.textContent = t; el.classList.toggle('warn', !ok); $('#make').disabled = !ok;
     return ok;
   }
-  product(S.p);
+  product(S.p); kind(S.kind);
 
   // ---------------------------------------------------------------- 3D view
   const cv = $('#v3d'), R = new THREE.WebGLRenderer({ canvas: cv, antialias: true });
@@ -263,10 +278,12 @@
     showMeshes(r.meshes, r.t);
   }
   async function makeLaser() {
-    const o = Object.assign(base(), { board: +$('#board').value, sheet: $('#sheet').value.split('x').map(Number), engrave: $('#engB').checked, numbers: $('#engN').checked });
+    const o = Object.assign(base(), { kind: S.kind, board: +$('#board').value, sheet: $('#sheet').value.split('x').map(Number), spacing: +$('#spacing').value, engrave: $('#engB').checked, numbers: $('#engN').checked });
     const r = await Outputs.laserKit(o, prog);
-    $('#dl').innerHTML = ''; link(o.tag + `_laser_${o.board}mm.zip`, r.blob, 'Download the kit (ZIP)');
-    st(`${r.M.layers.length} layers of ${o.board} mm on ${r.pk.count} sheet${r.pk.count > 1 ? 's' : ''} of ${o.sheet.join(' × ')} mm. Each layer is ${fmtN(r.layerM, 2)} m of ground.${o.engrave ? ` ${r.nB} footprints engraved.` : ''}`);
+    $('#dl').innerHTML = ''; link(o.tag + `_${o.kind}_${o.board}mm.zip`, r.blob, 'Download the kit (ZIP)');
+    const sh = `${r.pk.count} sheet${r.pk.count > 1 ? 's' : ''} of ${o.sheet.join(' × ')} mm`;
+    st(o.kind === 'waffle' ? `${r.W.pieces.length} sections (${r.W.pieces.length / 2} A + ${r.W.pieces.length / 2} B) of ${o.board} mm, ${fmtN(r.W.spacing, 1)} mm apart, on ${sh}.${o.engrave ? ` ${r.nB} building crossings engraved.` : ''}`
+      : `${r.M.layers.length} ${o.kind} layers of ${o.board} mm on ${sh}. Each layer is ${fmtN(r.layerM, 2)} m of ground.${o.engrave ? ` ${r.nB} footprints engraved.` : ''}`);
     showSVG(r.svg0);
   }
   async function makeMap() {

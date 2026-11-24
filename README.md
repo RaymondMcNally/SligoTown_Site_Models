@@ -12,7 +12,7 @@ A static website for fifth-year architecture students at ATU Sligo. Students put
 Buildings are **shown on the website only**: in the 3D view, as massing. Footprints come from Tailte Éireann and heights are roof minus ground, so the massing has no roof pitches. No download contains building volumes:
 
 - **3D print:** terrain only. The footprints are marked on the ground in one of four ways: an incised outline (0.6 mm wide, 0.4 mm deep), a raised outline (0.4 mm), a raised pad (0.4 mm), or none.
-- **Laser kit:** footprints, and optionally their numbers, are engraved on the layer each building stands on.
+- **Laser kit:** on the layer kits, footprints and optionally their numbers are engraved on the layer each building stands on. On the waffle, each section is engraved where it crosses a building.
 - **Contour plan:**
   - **Footprints:** can be switched on or off.
   - **Numbers:** can be switched on or off separately.
@@ -25,7 +25,7 @@ The same numbering is used in the plan, the laser kit, the 3D view, the PDF tabl
 | Output | Files |
 |---|---|
 | 3D print | 3MF and STL per tile (Bambu P1S, mm, north +Y), the numbered plan PDF, `building_heights.pdf/.csv`, README. A square over 230 mm is split into n × n equal tiles (up to 4 × 4): A, B… west to east, 1, 2… north to south. All tiles share one datum, so their edges are flush. Made in the browser with manifold-3d (`js/print3d.js`). |
-| Laser contour kit | Nested sheets (SVG and DXF; cut red, engrave blue), contour plan, heights table, README (`MyModel.buildModel` and `nest` from the Site Model Hub). |
+| Laser-cut kit | Three kinds: **hollow layers** (15 mm glue strip under the next layer, nested into the offcuts), **solid layers**, and **waffle** sections (A west–east slotted from below, B south–north slotted from above, 15–30 mm apart, building crossings engraved, `section_key.svg`). Sheets as SVG and DXF (cut red, engrave blue), contour plan, heights table, README. Geometry from the Site Model Hub (`buildModel`, `nest`, `buildWaffle`, `packShelves`). |
 | Contour plan | PDF on A3, A2, A1 or A0 (the smallest that fits) with the table of heights on A4. Also an SVG; a DXF for CAD (R12; contours and footprints as 3D polylines at their levels in ITM metres, layers `CONTOUR`, `CONTOUR_INDEX`, `FOOTPRINT`, `BUILDING_NO`, `WATER`, `ROAD`, `SITE_SQUARE`); the heights as CSV; and a **site pack** that the Site Model Hub imports (ground grid, building features, ITM origin). |
 
 Scales: print 1:200, 1:250, 1:500, 1:1000, 1:1250 and 1:2500. Laser 1:200 to 1:1250. Plan 1:200 to 1:2500.

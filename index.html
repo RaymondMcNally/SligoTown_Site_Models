@@ -90,12 +90,19 @@
       </div>
 
       <div class="grp" data-for="laser" hidden>
-        <span class="lab">3 · Laser contour kit</span>
+        <span class="lab">3 · Laser-cut kit</span>
+        <div class="seg" role="group" aria-label="Kind of laser kit">
+          <button type="button" data-k="hollow" aria-pressed="true">Hollow layers</button>
+          <button type="button" data-k="solid" aria-pressed="false">Solid layers</button>
+          <button type="button" data-k="waffle" aria-pressed="false">Waffle</button>
+        </div>
+        <p class="note" id="kNote"></p>
+        <label class="row" data-kind="waffle" hidden>Section spacing <select id="spacing"><option value="15">15 mm</option><option value="20" selected>20 mm</option><option value="25">25 mm</option><option value="30">30 mm</option></select></label>
         <label class="row">Board <select id="board"><option value="1">1 mm card</option><option value="1.5">1.5 mm greyboard</option><option value="2" selected>2 mm board</option><option value="3">3 mm MDF</option><option value="5">5 mm foamboard</option></select></label>
         <label class="row">Sheet <select id="sheet"><option value="600x400">600 × 400 mm</option><option value="841x594" selected>A1, 841 × 594 mm</option><option value="1000x600">1000 × 600 mm</option></select></label>
-        <label class="row"><input type="checkbox" id="engB" checked> Engrave the building footprints</label>
+        <label class="row"><input type="checkbox" id="engB" checked> <span id="engBL">Engrave the building footprints</span></label>
         <label class="row sub"><input type="checkbox" id="engN" checked> Engrave the building numbers</label>
-        <p class="note">Cut lines red, engraving blue, as SVG and DXF. The kit includes the contour plan with numbered buildings and the table of heights.</p>
+        <p class="note">Cut lines red, engraving blue, as SVG and DXF sheets. Every kit includes the contour plan with numbered buildings and the table of heights.</p>
       </div>
 
       <div class="grp" data-for="map" hidden>

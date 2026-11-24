@@ -174,12 +174,13 @@ ${txt.map(([x, y, s, t, fam]) => `<text x="${x + 6}" y="${y}" font-size="${s}" f
     return SiteData.dxf([['CONTOUR', 33], ['CONTOUR_INDEX', 32], ['FOOTPRINT', 7], ['BUILDING_NO', 1], ['WATER', 5], ['ROAD', 8], ['SITE_SQUARE', 30]], ents);
   }
 
-  // ---------------------------------------------------------------- laser contour kit
+  // ---------------------------------------------------------------- laser kits: hollow layers, solid layers, waffle sections
   async function laserKit(o, prog) {
-    const { DATA, sq, scale, board } = o, [sw, sh] = o.sheet, K = 1000 / scale;
+    if (o.kind === 'waffle') return waffleKit(o, prog);
+    const { DATA, sq, scale, board } = o, [sw, sh] = o.sheet, K = 1000 / scale, hollow = o.kind !== 'solid';
     prog('Slicing the contours…', .1); await tick();
     MyModel.setScale(scale);
-    const M = MyModel.buildModel(DATA.D, { x0: sq.x0, y0: sq.y0, size: sq.g }, board, { scale });
+    const M = MyModel.buildModel(DATA.D, { x0: sq.x0, y0: sq.y0, size: sq.g }, board, { scale, hollow, rim: 15 });
     if (!M.layers.length) throw new Error('This square is flat at this board thickness: try a thinner board or a larger scale.');
     const G = M.G, sqG = { x0: G.x0, y0: G.y0, g: G.size }, layerOf = gr => { let i = M.layers.length - 1; while (i > 0 && M.layers[i].L > gr) i--; return M.layers[i].L > gr ? -1 : i; };
     let nB = 0;
@@ -199,20 +200,93 @@ ${txt.map(([x, y, s, t, fam]) => `<text x="${x + 6}" y="${y}" font-size="${s}" f
     const pk = MyModel.nest(M.layers, sw, sh, 8, 3);
     if (pk.error) throw new Error(pk.error);
     prog('Writing the sheets and the plan…', .8); await tick();
-    const zip = new JSZip(), title = `${o.name || 'Sligo'} 1:${scale} ${board} mm`;
+    const zip = new JSZip(), title = `${o.name || 'Sligo'} 1:${scale} ${board} mm ${hollow ? 'hollow' : 'solid'}`;
     for (let i = 0; i < pk.count; i++) { const nn = String(i + 1).padStart(2, '0'); zip.file(`sheet_${nn}.svg`, MyModel.toSVG(pk, i, `${title} sheet ${nn}`)); zip.file(`sheet_${nn}.dxf`, MyModel.toDXF(pk, i)); }
     const layerM = board / K;
-    const plan = contourPlan(Object.assign({}, o, { interval: +layerM.toFixed(3), buildings: true, numbers: true, roads: true, water: true, spots: false, paper: 'kit' }));
-    zip.file('contour_plan.pdf', plan.pdf); zip.file('contour_plan.svg', plan.svg);
-    if (plan.list.length) { zip.file('building_heights.pdf', plan.tablePDF()); zip.file('building_heights.csv', plan.csv); }
-    zip.file('README.txt', `${title}\r\nSquare: ${fmtN(G.size, 1)} m, SW corner ITM E ${Math.round(DATA.X0 + G.x0)}, N ${Math.round(DATA.Y0 + G.y0)}\r\n` +
+    const plan = addPlan(zip, o, +layerM.toFixed(3));
+    zip.file('README.txt', `${title} contour kit\r\nSquare: ${fmtN(G.size, 1)} m, SW corner ITM E ${Math.round(DATA.X0 + G.x0)}, N ${Math.round(DATA.Y0 + G.y0)}\r\n` +
       `Board ${board} mm = ${fmtN(layerM, 2)} m of ground per layer at 1:${scale}; ${M.layers.length} layers on ${pk.count} sheets of ${sw} × ${sh} mm.\r\n` +
-      `Cut: red. Engrave: blue (the next layer's outline, layer numbers${o.engrave ? ', building footprints' + (o.numbers ? ' and building numbers' : '') : ''}).\r\n` +
-      `Stack the layers in number order on a base board the size of the square (${fmtN(G.size * K)} mm). Layers are hollowed under the one above to save board.\r\n` +
-      `The building numbers match contour_plan.pdf and building_heights.pdf / .csv. Buildings are not part of the kit: make them yourself at their heights.\r\n` +
-      `Ground: 2006 Sligo survey and OPW 2011 lidar (CC BY 4.0). Buildings: Tailte Éireann. Roads and water: OpenStreetMap contributors.\r\nMade with Sligo Site Models, ATU Sligo Department of Architecture.\r\n`);
+      (hollow ? `Hollow layers: each layer keeps a 15 mm strip under the layer above, so it uses less board. Keep the cut-out middles as offcuts.\r\n` : `Solid layers: every layer is a full piece, so the model is solid all through.\r\n`) +
+      `Cut: red. Engrave: blue (the next layer's outline, layer numbers${o.engrave ? ', building footprints' + (o.numbers ? ' and building numbers' : '') : ''}). Engrave first as a light score, then cut.\r\n` +
+      `Cut a base board ${fmtN(G.size * K)} × ${fmtN(G.size * K)} mm. Stack the layers in number order: each one sits on the blue line engraved on the layer below.\r\n` +
+      README_TAIL);
     const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
     return { blob, pk, M, layerM, nB, svg0: MyModel.toSVG(pk, 0, 'sheet 1'), plan };
+  }
+  const README_TAIL = `The building numbers match contour_plan.pdf and building_heights.pdf / .csv. Buildings are not part of the kit: make them yourself at their heights.\r\n` +
+    `Ground: 2006 Sligo survey and OPW 2011 lidar (CC BY 4.0). Buildings: Tailte Éireann. Roads and water: OpenStreetMap contributors.\r\nMade with Sligo Site Models, ATU Sligo Department of Architecture.\r\n`;
+  function addPlan(zip, o, interval) {
+    const plan = contourPlan(Object.assign({}, o, { interval, buildings: true, numbers: true, roads: true, water: true, spots: false, paper: 'kit' }));
+    zip.file('contour_plan.pdf', plan.pdf); zip.file('contour_plan.svg', plan.svg);
+    if (plan.list.length) { zip.file('building_heights.pdf', plan.tablePDF()); zip.file('building_heights.csv', plan.csv); }
+    return plan;
+  }
+
+  // Waffle: true sections slotted together (MyModel.buildWaffle). Where a section crosses a building, a line is engraved
+  // 1.5 mm under the ground line along the crossing, with the building's number under it when there is room.
+  async function waffleKit(o, prog) {
+    const { DATA, sq, scale, board } = o, [sw, sh] = o.sheet, K = 1000 / scale;
+    prog('Cutting the sections…', .15); await tick();
+    MyModel.setScale(scale);
+    const { lo } = SiteData.groundRange(DATA, sq);
+    const W = MyModel.buildWaffle(DATA.D, { x0: sq.x0, y0: sq.y0, size: sq.g }, { scale, board, spacing: o.spacing, base: 10, datum: Math.floor(lo) - 1 });
+    if (W.error) throw new Error('There is no ground in this square.');
+    const G = W.G, S = W.size, sqG = { x0: G.x0, y0: G.y0, g: G.size };
+    let nB = 0;
+    if (o.engrave) {
+      const fps = SiteData.footprintsIn(DATA, sqG), nums = new Map(SiteData.numbered(DATA, sqG).map(b => [b.i, b.n]));
+      const topAt = (pc, s) => { const pl = pc.outline; let best = 0; for (let k = 1; k < pl.length; k++) { const [a, b] = [pl[k - 1], pl[k]]; if ((a[0] - s) * (b[0] - s) <= 0 && a[0] !== b[0]) best = Math.max(best, a[1] + (b[1] - a[1]) * (s - a[0]) / (b[0] - a[0])); } return best; };
+      W.pieces.forEach(pc => {
+        const along = pc.dir === 'A' ? s => [G.x0 + s / K, G.y0 + pc.at / K] : s => [G.x0 + pc.at / K, G.y0 + s / K];
+        fps.forEach(({ b, polys }) => {
+          // runs of the section line inside this footprint, sampled every 0.25 mm on the model
+          let run = null; const runs = [];
+          for (let s = 0; s <= S + 1e-9; s += .25) {
+            const inB = polys.some(p => SiteData.inPoly(along(Math.min(s, S)), p));
+            if (inB && !run) run = [s, s]; else if (inB) run[1] = s; else if (run) { runs.push(run); run = null; }
+          }
+          if (run) runs.push(run);
+          runs.filter(([a, c]) => c - a >= .75).forEach(([a, c]) => {
+            const pts = []; for (let s = a; s <= c + 1e-9; s += Math.max(.5, (c - a) / 20)) pts.push([s, topAt(pc, Math.min(s, c)) - 1.5]);
+            pc.engrave.push(pts, [[a, pts[0][1] + .8], [a, pts[0][1] - .8]], [[c, pts[pts.length - 1][1] + .8], [c, pts[pts.length - 1][1] - .8]]);
+            const n = o.numbers && nums.get(b.i);
+            if (n) { const t = MyModel.strokeText(String(n), 1.4); if (t.w + .6 < c - a) { const cx = (a + c) / 2, cy = topAt(pc, cx) - 3.6; if (cy > 12.5) t.lines.forEach(l => pc.engrave.push(l.map(([x, y]) => [cx + x, cy + y]))); } }
+            nB++;
+          });
+        });
+      });
+    }
+    prog(`Packing ${W.pieces.length} sections on ${sw} × ${sh} mm sheets…`, .6); await tick();
+    const pk = MyModel.packShelves(W.pieces, sw, sh);
+    if (pk.error) throw new Error(pk.error);
+    prog('Writing the sheets and the plan…', .8); await tick();
+    const zip = new JSZip(), title = `${o.name || 'Sligo'} 1:${scale} ${board} mm waffle`;
+    let svg0 = '';
+    for (let i = 0; i < pk.count; i++) {
+      const nn = String(i + 1).padStart(2, '0'), { cut, eng } = MyModel.shelfPaths(pk, i), svg = MyModel.pathsSVG(sw, sh, cut, eng, `${title} sheet ${nn}`);
+      zip.file(`sheet_${nn}.svg`, svg); zip.file(`sheet_${nn}.dxf`, MyModel.pathsDXF(cut, eng)); if (!i) svg0 = svg;
+    }
+    const plan = addPlan(zip, o, scale <= 500 ? 1 : 2);
+    zip.file('section_key.svg', waffleKey(W, plan, K));
+    const nA = W.pieces.length / 2;
+    zip.file('README.txt', `${title} kit\r\nSquare: ${fmtN(G.size, 1)} m (${fmtN(S)} mm), SW corner ITM E ${Math.round(DATA.X0 + G.x0)}, N ${Math.round(DATA.Y0 + G.y0)}\r\n` +
+      `${nA} A sections run west to east (A1 at the south edge) and are slotted from below; ${nA} B sections run south to north (B1 at the west edge) and are slotted from above.\r\n` +
+      `Sections ${fmtN(W.spacing, 1)} mm apart = ${fmtN(W.spacing / K, 1)} m on the ground. A ${W.base} mm solid strip runs under ${Math.floor(lo) - 1} m OD. Heights true scale; tallest piece ${fmtN(W.height, 1)} mm.\r\n` +
+      `Every piece is engraved with its name and an arrow pointing east (A) or north (B).${o.engrave ? ' Where a section crosses a building, a line is engraved 1.5 mm under the ground line between ticks at the walls, with the building number under it where it fits.' : ''}\r\n` +
+      `Slot each B piece down over the A pieces, matching the names to section_key.svg. ${pk.count} sheets of ${sw} × ${sh} mm. Cut: red. Engrave: blue.\r\n` + README_TAIL);
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+    return { blob, pk, W, nB, svg0, plan };
+  }
+  // the plan with every section line named, to put the waffle together
+  function waffleKey(W, plan, K) {
+    const S = W.size, m = 12, f = v => v.toFixed(2);
+    const lines = W.pieces.map(pc => pc.dir === 'A'
+      ? `<path d="M${m},${f(m + S - pc.at)}H${f(m + S)}" stroke="#c0392b" stroke-width=".35"/><text x="${f(m + S + 2)}" y="${f(m + S - pc.at + 1)}" font-size="3" font-family="sans-serif" fill="#c0392b">${pc.id}</text>`
+      : `<path d="M${f(m + pc.at)},${m}V${f(m + S)}" stroke="#2d4a5e" stroke-width=".35"/><text x="${f(m + pc.at)}" y="${f(m + S + 5)}" font-size="3" text-anchor="middle" font-family="sans-serif" fill="#2d4a5e">${pc.id}</text>`).join('');
+    const fp = plan.list.map(b => `<text x="${f(m + (b.at[0] - W.G.x0) * K)}" y="${f(m + S - (b.at[1] - W.G.y0) * K + .6)}" font-size="1.8" text-anchor="middle" font-family="sans-serif" fill="#555">${b.n}</text>`).join('');
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${f(S + 2 * m + 10)}mm" height="${f(S + 2 * m + 6)}mm" viewBox="0 0 ${f(S + 2 * m + 10)} ${f(S + 2 * m + 6)}"><rect width="100%" height="100%" fill="#fff"/>` +
+      `<rect x="${m}" y="${m}" width="${f(S)}" height="${f(S)}" fill="none" stroke="#000" stroke-width=".4"/>${fp}${lines}` +
+      `<text x="${m}" y="${m - 4}" font-size="4" font-family="sans-serif">Waffle key: A west–east, B south–north. North is up. Numbers = buildings.</text></svg>`;
   }
 
   // ---------------------------------------------------------------- 3D print, terrain only, split into equal tiles
