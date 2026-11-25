@@ -235,12 +235,13 @@ ${txt.map(([x, y, s, t, fam]) => `<text x="${x + 6}" y="${y}" font-size="${s}" f
     const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
     return { blob, pk, M, layerM, nB, nP, svg0: MyModel.toSVG(pk, 0, 'sheet 1'), plan };
   }
-  const README_TAIL = `The building numbers match contour_plan.pdf and building_heights.pdf / .csv. Buildings are not part of the kit: make them yourself at their heights.\r\n` +
+  const README_TAIL = `Buildings are not part of the kit: make them yourself. Where the kit has building numbers they match contour_plan.pdf and building_heights.pdf / .csv.\r\n` +
     `Ground: 2006 Sligo survey and OPW 2011 lidar (CC BY 4.0). Buildings: Tailte Éireann. Roads and water: OpenStreetMap contributors.\r\nMade with Sligo Site Models, ATU Sligo Department of Architecture.\r\n`;
   function addPlan(zip, o, interval) {
-    const plan = contourPlan(Object.assign({}, o, { interval, buildings: true, numbers: true, roads: true, water: true, spots: false, paper: 'kit' }));
+    const tab = o.table !== false;                                           // numbers and heights table (admin setting)
+    const plan = contourPlan(Object.assign({}, o, { interval, buildings: true, numbers: tab, roads: true, water: true, spots: false, paper: 'kit' }));
     zip.file('contour_plan.pdf', plan.pdf); zip.file('contour_plan.svg', plan.svg);
-    if (plan.list.length) { zip.file('building_heights.pdf', plan.tablePDF()); zip.file('building_heights.csv', plan.csv); }
+    if (tab && plan.list.length) { zip.file('building_heights.pdf', plan.tablePDF()); zip.file('building_heights.csv', plan.csv); }
     return plan;
   }
 
@@ -344,9 +345,10 @@ ${txt.map(([x, y, s, t, fam]) => `<text x="${x + 6}" y="${y}" font-size="${s}" f
       await tick();
     }
     prog('Adding the plan and the table of heights…', .95); await tick();
-    const plan = contourPlan(Object.assign({}, o, { interval: scale <= 500 ? 1 : 2, buildings: true, numbers: true, roads: o.roads, water: o.water, spots: false, paper: 'kit' }));
+    const tab = o.table !== false;
+    const plan = contourPlan(Object.assign({}, o, { interval: scale <= 500 ? 1 : 2, buildings: true, numbers: tab, roads: o.roads, water: o.water, spots: false, paper: 'kit' }));
     zip.file(tagBase + '_plan.pdf', plan.pdf);
-    if (plan.list.length) { zip.file('building_heights.pdf', plan.tablePDF()); zip.file('building_heights.csv', plan.csv); }
+    if (tab && plan.list.length) { zip.file('building_heights.pdf', plan.tablePDF()); zip.file('building_heights.csv', plan.csv); }
     const tH = Math.max(...meshes.map(x => x.m.info.height));
     zip.file('README.txt', `${o.name || 'Sligo site'} · terrain model at 1:${scale}\r\n` +
       `Square ${fmtN(sq.g, 1)} m (${fmtN(t.mm)} mm), SW corner ITM E ${Math.round(DATA.X0 + sq.x0)}, N ${Math.round(DATA.Y0 + sq.y0)}.\r\n` +

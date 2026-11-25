@@ -4,16 +4,58 @@
   'use strict';
   const { $, fmtN, toITM, fromITM, getJSON } = AW;
   const st = (t, err) => { $('#status').textContent = t; $('#status').classList.toggle('err', !!err); };
+  // ---------------------------------------------------------------- what the admin page allows
+  const CFG = await SSMConfig.load();
+  if (CFG._preview) $('#notice').insertAdjacentHTML('beforeend', '<p class="nb prev"><b>Preview</b> of the settings on the admin page (not yet published). Students do not see this.</p>');
+  if (CFG.site.notice) $('#notice').insertAdjacentHTML('beforeend', `<p class="nb">${AW.esc(CFG.site.notice)}</p>`);
+  const PRODS = ['print', 'laser', 'map'].filter(p => CFG[p === 'map' ? 'plan' : p].enabled);
+  if (!CFG.site.open || !PRODS.length) {
+    document.querySelector('.tool').innerHTML = `<div class="closed"><h2>Closed for now</h2><p>${AW.esc(CFG.site.closedMessage)}</p></div>`;
+    return;
+  }
   st('Loading the ground, buildings, roads and water…');
   const DATA = await SiteData.load();
   const { MJ, X0, Y0, SZ } = DATA;
 
   // ---------------------------------------------------------------- state
-  const GROUNDS = [40, 50, 60, 80, 100, 120, 150, 200, 250, 300, 400, 500];
-  const SCALES = { print: [200, 250, 500, 1000, 1250, 2500], laser: [200, 250, 500, 1000, 1250], map: [200, 250, 500, 1000, 1250, 2500] };
+  const pick = (all, allowed) => { const a = all.filter(v => allowed.map(Number).includes(+v)); return a.length ? a : all.slice(0, 1); };
+  const GROUNDS = pick(SSMConfig.ALL.squares, CFG.squares);
+  const SCALES = { print: pick(SSMConfig.ALL.printScales, CFG.print.scales), laser: pick(SSMConfig.ALL.laserScales, CFG.laser.scales), map: pick(SSMConfig.ALL.planScales, CFG.plan.scales) };
   const S = { name: '', g: 100, cx: MJ.centre[0] - X0, cy: MJ.centre[1] - Y0, p: 'print', scale: { print: 500, laser: 500, map: 500 } };
   try { const s = JSON.parse(localStorage.getItem('ssm-state') || '{}'); Object.assign(S, s, { scale: Object.assign(S.scale, s.scale || {}) }); } catch (e) { }
-  if (!GROUNDS.includes(+S.g)) S.g = 100;
+  if (!GROUNDS.includes(+S.g)) S.g = GROUNDS.includes(+CFG.squareDefault) ? +CFG.squareDefault : GROUNDS[Math.floor(GROUNDS.length / 2)];
+  if (!PRODS.includes(S.p)) S.p = PRODS[0];
+  // hide what is switched off, and keep only the allowed choices in each list
+  const hide = (sel, off) => document.querySelectorAll(sel).forEach(el => { (el.closest('label') || el).hidden = off; });
+  const keepOpts = (sel, allowed) => { const s = $(sel), keep = [...s.options].filter(o => allowed.map(String).includes(o.value)); if (!keep.length) return; const v = s.value; [...s.options].forEach(o => { if (!keep.includes(o)) o.remove(); }); s.value = keep.some(o => o.value === v) ? v : keep[0].value; };
+  document.querySelectorAll('[data-p]').forEach(b => { b.hidden = !PRODS.includes(b.dataset.p); });
+  if (PRODS.length === 1) document.querySelector('[aria-label="What to make"]').hidden = true;
+  const TABLE = CFG.heightsTable !== false;
+  hide('#vBld', !CFG.view.buildings); if (!CFG.view.buildings) $('#vBld').checked = false;
+  hide('#vNum', !CFG.view.numbers || !TABLE || !CFG.view.buildings); if (!CFG.view.numbers || !TABLE) $('#vNum').checked = false;
+  // 3D print
+  document.querySelectorAll('[name=marks]').forEach(r => { r.closest('label').hidden = !CFG.print.marks.includes(r.value); });
+  if (!CFG.print.marks.includes(document.querySelector('[name=marks]:checked').value)) {
+    const f = [...document.querySelectorAll('[name=marks]')].find(r => CFG.print.marks.includes(r.value)) || document.querySelector('[name=marks][value=off]'); f.checked = true;
+  }
+  if (CFG.print.marks.length <= 1) document.querySelector('fieldset.opt').hidden = true;
+  hide('#pPlat', !CFG.print.platforms); if (!CFG.print.platforms) $('#pPlat').checked = false;
+  hide('#vex', !CFG.print.exaggeration); if (!CFG.print.exaggeration) $('#vex').value = '1';
+  hide('#roads', !CFG.print.roadsWater); hide('#water', !CFG.print.roadsWater);
+  const MAXT = Math.max(1, Math.min(4, +CFG.print.maxTiles || 4));
+  // laser
+  document.querySelectorAll('[data-k]').forEach(b => { b.hidden = !CFG.laser.kinds.includes(b.dataset.k); });
+  if (CFG.laser.kinds.length === 1) document.querySelector('[aria-label="Kind of laser kit"]').hidden = true;
+  hide('#lPlat', !CFG.laser.platforms); if (!CFG.laser.platforms) $('#lPlat').checked = false;
+  hide('#engB', !CFG.laser.engrave); hide('#engN', !CFG.laser.engrave || !TABLE); if (!CFG.laser.engrave) $('#engB').checked = false; if (!TABLE) $('#engN').checked = false;
+  keepOpts('#board', CFG.laser.boards); keepOpts('#sheet', CFG.laser.sheets);
+  // contour plan
+  keepOpts('#interval', CFG.plan.intervals);
+  hide('#mN', !TABLE); if (!TABLE) $('#mN').checked = false;
+  hide('#mS', !CFG.plan.spots); if (!CFG.plan.spots) $('#mS').checked = false;
+  const FMT = f => CFG.plan.formats.includes(f);
+  { const names = { pdf: TABLE ? 'PDF (plan, then the table of building heights)' : 'PDF', svg: 'SVG', dxf: 'a DXF for CAD (contours and footprints at their real levels, ITM metres)', csv: TABLE ? 'the heights table as CSV' : '', sitepack: 'a site pack for the Site Model Hub' };
+    const l = SSMConfig.ALL.formats.filter(FMT).map(f => names[f]).filter(Boolean); const t = l.length > 1 ? l.slice(0, -1).join(', ') + ' and ' + l[l.length - 1] + '.' : (l[0] || '') + '.'; $('#planNote').textContent = t.charAt(0).toUpperCase() + t.slice(1); }
   const save = () => { try { localStorage.setItem('ssm-state', JSON.stringify(S)); } catch (e) { } };
   const sq = () => ({ x0: S.cx - S.g / 2, y0: S.cy - S.g / 2, g: S.g });
   const scale = () => S.scale[S.p];
@@ -43,6 +85,7 @@
   map.addSource('sq', { type: 'geojson', data: sqGeo() });
   map.addLayer({ id: 'sq', type: 'fill', source: 'sq', paint: { 'fill-color': '#e08a5c', 'fill-opacity': .2 } });
   map.addLayer({ id: 'sq-l', type: 'line', source: 'sq', paint: { 'line-color': '#e08a5c', 'line-width': 2.5 } });
+  if (!CFG.map.streetMap) document.querySelector('.map-sw').hidden = true;
   document.querySelectorAll('[data-base]').forEach(b => b.onclick = () => {
     const osm = b.dataset.base === 'osm';
     document.querySelectorAll('[data-base]').forEach(x => x.setAttribute('aria-pressed', x === b));
@@ -90,13 +133,15 @@
   document.querySelectorAll('[data-p]').forEach(b => b.onclick = () => product(b.dataset.p));
   $('#scale').onchange = e => { S.scale[S.p] = +e.target.value; save(); summary(); $('#dl').innerHTML = ''; };
   $('#mB').onchange = () => { $('#mN').disabled = !$('#mB').checked; };
-  const KINDS = {
+  const KINDS0 = {
     hollow: 'One layer per board thickness, hollowed under the layer above (a 15 mm glue strip) to save board. The cut-out middles are offcuts.',
     solid: 'One full layer per board thickness: heavier and uses more board, but every layer is a solid piece, good for carving into or painting.',
     waffle: 'An egg-crate of true sections, west–east (A) and south–north (B), slotted together. Quick to cut and light; shows the ground as sections.'
   };
+  const KINDS = Object.fromEntries(Object.entries(KINDS0).filter(([k]) => CFG.laser.kinds.includes(k)));
+  if (!Object.keys(KINDS).length) KINDS.hollow = KINDS0.hollow;
   function kind(k) {
-    S.kind = KINDS[k] ? k : 'hollow';
+    S.kind = KINDS[k] ? k : Object.keys(KINDS)[0];
     document.querySelectorAll('[data-k]').forEach(b => b.setAttribute('aria-pressed', b.dataset.k === S.kind));
     document.querySelectorAll('[data-kind]').forEach(el => { el.hidden = el.dataset.kind !== S.kind; });
     $('#kNote').textContent = KINDS[S.kind];
@@ -121,7 +166,7 @@
     const q = sq(), sc = scale(), mm = q.g * 1000 / sc, el = $('#sum'); let t = '', ok = true;
     if (S.p === 'print') {
       const tl = Outputs.tilesFor(q, sc);
-      if (tl.n > 4) { ok = false; t = `${fmtN(mm)} mm square at 1:${fmtN(sc)}: that would be ${tl.n * tl.n} tiles. Choose a smaller scale or a smaller square (up to 4 × 4 tiles).`; }
+      if (tl.n > MAXT) { ok = false; t = `${fmtN(mm)} mm square at 1:${fmtN(sc)}: that would be ${tl.n * tl.n} tiles. Choose a smaller scale or a smaller square (up to ${MAXT} × ${MAXT} tile${MAXT > 1 ? 's' : ''}).`; }
       else t = `${fmtN(mm)} mm square at 1:${fmtN(sc)}` + (tl.n > 1 ? ` → ${tl.n} × ${tl.n} tiles of ${fmtN(tl.tile, 1)} mm` : ', one tile') + `. Print grid ${fmtN(Math.max(0.4, Math.min(1, 250 / sc)), 1)} mm (ground data every 2 m).`;
     } else if (S.p === 'laser') {
       const b = +$('#board').value, lm = b * sc / 1000;
@@ -233,14 +278,14 @@
   const ray = new THREE.Raycaster(), mouse = new THREE.Vector2(); let downAt = null;
   cv.addEventListener('pointerdown', e => { downAt = [e.clientX, e.clientY]; });
   cv.addEventListener('pointerup', e => {
-    if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 4 || view !== 'site') return;
+    if (!CFG.view.buildingInfo || !downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 4 || view !== 'site') return;
     const r = cv.getBoundingClientRect(); mouse.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
     ray.setFromCamera(mouse, cam); const hit = ray.intersectObjects(bMeshes)[0];
     bMeshes.forEach(m => { m.material = m.userData.b.est ? matBE : matB; });
     if (!hit) { $('#vPick').hidden = true; return; }
     const { b, nb } = hit.object.userData; bMeshes.filter(m => m.userData.b === b).forEach(m => { m.material = matBP; });
     const row = (k, v) => v == null ? '' : `<tr><td>${k}</td><td>${typeof v === 'number' ? v.toFixed(2) : v}</td></tr>`;
-    $('#vPick').innerHTML = `<b>${nb ? 'Building ' + nb.n : 'Building (numbered in the next square)'}</b><div class="dim" style="font-size:12.5px">${AW.esc(b.use)}</div><table>${row('Ground', b.ground)}${row('Eaves', b.eave)}${row('Roof', b.roof)}${row('Top', b.top)}${row('Height', b.h)}</table><div class="dim" style="font-size:11.5px;margin-top:4px">m OD · height above ground in m${b.est ? '<br>Estimated height: check on site' : ''}</div>`;
+    $('#vPick').innerHTML = `<b>${!TABLE ? 'Building' : nb ? 'Building ' + nb.n : 'Building (numbered in the next square)'}</b><div class="dim" style="font-size:12.5px">${AW.esc(b.use)}</div><table>${row('Ground', b.ground)}${row('Eaves', b.eave)}${row('Roof', b.roof)}${row('Top', b.top)}${row('Height', b.h)}</table><div class="dim" style="font-size:11.5px;margin-top:4px">m OD · height above ground in m${b.est ? '<br>Estimated height: check on site' : ''}</div>`;
     $('#vPick').hidden = false;
   });
 
@@ -274,21 +319,21 @@
   // ---------------------------------------------------------------- make
   const prog = (t, f) => { st(t); $('#prog').hidden = f == null; $('#prog i').style.width = Math.round((f || 0) * 100) + '%'; };
   const link = (name, blob, label) => { const a = document.createElement('a'); a.className = 'btn sm'; a.href = URL.createObjectURL(blob); a.download = name; a.textContent = label; $('#dl').append(a); };
-  const base = () => ({ DATA, sq: sq(), scale: scale(), name: S.name, tag: tag() });
+  const base = () => ({ DATA, sq: sq(), scale: scale(), name: S.name, tag: tag(), table: TABLE });
 
   async function makePrint() {
-    const o = Object.assign(base(), { vex: +$('#vex').value, roads: $('#roads').checked, water: $('#water').checked, base: +$('#base').value, marks: document.querySelector('[name=marks]:checked').value, platforms: $('#pPlat').checked, platStep: +$('#pStep').value });
+    const o = Object.assign(base(), { vex: +$('#vex').value, roads: CFG.print.roadsWater ? $('#roads').checked : true, water: CFG.print.roadsWater ? $('#water').checked : true, base: +$('#base').value, marks: document.querySelector('[name=marks]:checked').value, platforms: CFG.print.platforms && $('#pPlat').checked, platStep: +$('#pStep').value });
     const r = await Outputs.print(o, prog);
     $('#dl').innerHTML = '';
     if (r.meshes.length === 1) { link(o.tag + '.3mf', r.meshes[0].b3, 'Download 3MF'); }
-    link(o.tag + (r.meshes.length > 1 ? `_${r.t.n}x${r.t.n}_tiles` : '') + '.zip', r.blob, r.meshes.length > 1 ? `Download all ${r.meshes.length} tiles (ZIP)` : 'ZIP: 3MF, STL, plan and heights');
+    link(o.tag + (r.meshes.length > 1 ? `_${r.t.n}x${r.t.n}_tiles` : '') + '.zip', r.blob, r.meshes.length > 1 ? `Download all ${r.meshes.length} tiles (ZIP)` : TABLE ? 'ZIP: 3MF, STL, plan and heights' : 'ZIP: 3MF, STL and plan');
     const fp = r.meshes.reduce((s, x) => s + x.m.info.footprints, 0);
     const np = r.meshes.reduce((s, x) => s + (x.m.info.platforms || 0), 0);
-    st(`${r.meshes.length > 1 ? r.meshes.length + ' tiles of ' + fmtN(r.t.tile, 1) + ' mm' : fmtN(r.t.mm) + ' mm square'}, up to ${fmtN(r.height, 1)} mm high, datum ${r.datum} m OD. ${o.marks === 'off' ? 'No footprints marked.' : fmtN(fp) + ' footprints marked.'}${o.platforms ? ` ${fmtN(np)} level platforms cut.` : ''} Watertight. The ZIP also has the numbered plan and the table of heights.`);
+    st(`${r.meshes.length > 1 ? r.meshes.length + ' tiles of ' + fmtN(r.t.tile, 1) + ' mm' : fmtN(r.t.mm) + ' mm square'}, up to ${fmtN(r.height, 1)} mm high, datum ${r.datum} m OD. ${o.marks === 'off' ? 'No footprints marked.' : fmtN(fp) + ' footprints marked.'}${o.platforms ? ` ${fmtN(np)} level platforms cut.` : ''} Watertight. ${TABLE ? 'The ZIP also has the numbered plan and the table of heights.' : 'The ZIP also has the plan.'}`);
     showMeshes(r.meshes, r.t);
   }
   async function makeLaser() {
-    const o = Object.assign(base(), { kind: S.kind, board: +$('#board').value, sheet: $('#sheet').value.split('x').map(Number), spacing: +$('#spacing').value, engrave: $('#engB').checked, numbers: $('#engN').checked, platforms: $('#lPlat').checked, platStep: +$('#lStep').value });
+    const o = Object.assign(base(), { kind: S.kind, board: +$('#board').value, sheet: $('#sheet').value.split('x').map(Number), spacing: +$('#spacing').value, engrave: CFG.laser.engrave && $('#engB').checked, numbers: TABLE && $('#engN').checked, platforms: CFG.laser.platforms && $('#lPlat').checked, platStep: +$('#lStep').value });
     const r = await Outputs.laserKit(o, prog);
     $('#dl').innerHTML = ''; link(o.tag + `_${o.kind}_${o.board}mm.zip`, r.blob, 'Download the kit (ZIP)');
     const sh = `${r.pk.count} sheet${r.pk.count > 1 ? 's' : ''} of ${o.sheet.join(' × ')} mm`;
@@ -298,16 +343,16 @@
   }
   async function makeMap() {
     prog('Drawing the contours…', .3); await new Promise(r => setTimeout(r, 30));
-    const o = Object.assign(base(), { interval: +$('#interval').value, buildings: $('#mB').checked, numbers: $('#mB').checked && $('#mN').checked, roads: $('#mR').checked, water: $('#mW').checked, spots: $('#mS').checked });
+    const o = Object.assign(base(), { interval: +$('#interval').value, buildings: $('#mB').checked, numbers: TABLE && $('#mB').checked && $('#mN').checked, roads: $('#mR').checked, water: $('#mW').checked, spots: CFG.plan.spots && $('#mS').checked });
     const m = Outputs.contourPlan(o);
     prog('Writing the DXF and the site pack…', .7); await new Promise(r => setTimeout(r, 30));
     const dxf = Outputs.planDXF(o, m), pack = SiteData.sitePack(DATA, o.sq, o.name || 'Sligo site', m.list);
     $('#dl').innerHTML = '';
-    link(o.tag + '_contours.pdf', m.pdf, 'PDF');
-    link(o.tag + '_contours.svg', new Blob([m.svg], { type: 'image/svg+xml' }), 'SVG');
-    link(o.tag + '_contours.dxf', new Blob([dxf], { type: 'application/dxf' }), 'DXF (CAD)');
-    if (o.numbers && m.list.length) link(o.tag + '_building_heights.csv', new Blob([m.csv], { type: 'text/csv' }), 'Heights CSV');
-    link(o.tag + '_sitepack.json', new Blob([JSON.stringify(pack)], { type: 'application/json' }), 'Site pack (Site Model Hub)');
+    if (FMT('pdf')) link(o.tag + '_contours.pdf', m.pdf, 'PDF');
+    if (FMT('svg')) link(o.tag + '_contours.svg', new Blob([m.svg], { type: 'image/svg+xml' }), 'SVG');
+    if (FMT('dxf')) link(o.tag + '_contours.dxf', new Blob([dxf], { type: 'application/dxf' }), 'DXF (CAD)');
+    if (FMT('csv') && o.numbers && m.list.length) link(o.tag + '_building_heights.csv', new Blob([m.csv], { type: 'text/csv' }), 'Heights CSV');
+    if (FMT('sitepack')) link(o.tag + '_sitepack.json', new Blob([JSON.stringify(TABLE ? pack : Object.assign(pack, { features: pack.features.map(f => Object.assign(f, { name: 'Building', note: '' })) }))], { type: 'application/json' }), 'Site pack (Site Model Hub)');
     st(`Contour plan at 1:${fmtN(o.scale)} on ${m.paper}, ${fmtN(m.G.size, 1)} m square${o.numbers ? `, ${m.list.length} numbered buildings${m.nEst ? ` (${m.nEst} with estimated heights)` : ''}` : ''}.`);
     showSVG(m.svg);
   }
@@ -322,5 +367,5 @@
 
   showSq(true);
   st('Drag the square onto your site, choose what to make and the scale, then Make it.');
-  window.SSM = { S, DATA, sq, showSq, summary, setView };            // for testing
+  window.SSM = { S, DATA, CFG, sq, showSq, summary, setView };            // for testing
 })().catch(e => { console.error(e); const s = document.getElementById('status'); if (s) { s.textContent = 'The page could not start: ' + e.message; s.classList.add('err'); } });

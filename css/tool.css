@@ -43,3 +43,10 @@ fieldset.opt label input { margin-top: 3px; flex: none }
 .guide th, .guide td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top }
 .guide th { font: 500 12px var(--f-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-2) }
 .guide li { margin-bottom: .4em; max-width: 72ch }
+
+/* notices from the admin page */
+#notice:empty { display: none }
+.nb { background: #fbeee6; border-left: 4px solid var(--lichen); padding: 10px 14px; border-radius: 4px; margin: 0 0 14px; font-size: 15px; max-width: none }
+.nb.prev { background: #e8edf0; border-color: var(--deep) }
+.closed { grid-column: 1 / -1; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 40px; text-align: center }
+.closed p { margin: 0 auto; max-width: 60ch }

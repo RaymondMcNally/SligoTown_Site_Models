@@ -27,6 +27,7 @@
     <h1>Your site, <em>at any scale</em>.</h1>
     <p class="lede">Put the square on your site anywhere in the old Sligo borough, choose a scale, and download the ground as a 3D print, a laser-cut contour kit or a contour plan. The buildings are shown here for context; the downloads carry only their footprints, numbered, with a table of heights.</p>
   </div>
+  <div class="wrap" id="notice"></div>
   <div class="wrap tool">
     <div>
       <div class="mapbox">
@@ -119,7 +120,7 @@
         <label class="row"><input type="checkbox" id="mR" checked> Roads</label>
         <label class="row"><input type="checkbox" id="mW" checked> Water</label>
         <label class="row"><input type="checkbox" id="mS" checked> Spot heights</label>
-        <p class="note">PDF (plan, then the table of building heights), SVG, a DXF for CAD (contours and footprints at their real levels, ITM metres), the table as CSV, and a site pack for the Site Model Hub.</p>
+        <p class="note" id="planNote">PDF (plan, then the table of building heights), SVG, a DXF for CAD (contours and footprints at their real levels, ITM metres), the table as CSV, and a site pack for the Site Model Hub.</p>
       </div>
 
       <div class="grp">
@@ -141,6 +142,7 @@
 <script src="js/common.js"></script>
 <script src="js/model-core.js"></script>
 <script src="js/print3d.js"></script>
+<script src="js/config.js"></script>
 <script src="js/site-data.js"></script>
 <script src="js/outputs.js"></script>
 <script src="js/app.js"></script>

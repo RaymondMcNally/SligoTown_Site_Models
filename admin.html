@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Admin · Sligo Site Models</title>
+<link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/site.css">
+<link rel="stylesheet" href="css/tool.css">
+<style>
+  .adm { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; padding-bottom: 50px }
+  @media (max-width: 960px) { .adm { grid-template-columns: 1fr } }
+  .card { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 18px 20px; margin-bottom: 16px }
+  .card h2 { font-size: 21px; margin: 0 0 4px; display: flex; align-items: center; gap: 12px }
+  .card h2 .sw { margin-left: auto }
+  .card > p.note { margin: 0 0 12px }
+  .card.off .body { opacity: .4; pointer-events: none }
+  .opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px 18px; margin: 10px 0 }
+  .opts label, .chips label { display: flex; gap: 8px; align-items: flex-start; font-size: 14.5px }
+  .opts label input { margin-top: 3px }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 12px }
+  .chips label { border: 1px solid var(--line); border-radius: 4px; padding: 4px 9px; background: #fff; font: 13px var(--f-mono); cursor: pointer; align-items: center }
+  .chips label:has(input:checked) { background: var(--deep); color: #fff; border-color: var(--deep) }
+  .chips input { margin: 0 }
+  .sub-h { font: 500 12px var(--f-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-2); margin: 12px 0 2px }
+  .sw { position: relative; display: inline-flex; align-items: center; gap: 8px; font: 500 13px var(--f-body); cursor: pointer }
+  .sw input { appearance: none; width: 40px; height: 22px; border-radius: 11px; background: #c8ccd0; position: relative; cursor: pointer; transition: background .15s; margin: 0 }
+  .sw input::after { content: ''; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .15s }
+  .sw input:checked { background: #3f8a4f }
+  .sw input:checked::after { left: 21px }
+  textarea, .card input[type=text], .side input[type=password] { width: 100%; font: 14px var(--f-body); padding: 7px 9px; border: 1px solid var(--line); border-radius: 4px; background: #fff }
+  textarea { min-height: 62px; resize: vertical }
+  .side { position: sticky; top: 16px }
+  .side .card { background: #fff }
+  .side .btn { width: 100%; margin-bottom: 8px; text-align: center }
+  .changes { font: 12.5px/1.5 var(--f-mono); color: var(--ink-2); max-height: 180px; overflow: auto; margin: 6px 0 10px }
+  .changes b { color: #b5532f; font-weight: 500 }
+  .warn-line { color: #b5532f; font-size: 13.5px }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="index.html"><b>Sligo Site Models</b><span>ATU Sligo · Department of Architecture</span></a>
+    <nav aria-label="Pages"><a href="index.html">Make a site model</a><a href="guide.html">Guide and data</a><a href="admin.html" aria-current="page">Admin</a></nav>
+  </div>
+</header>
+<main>
+  <div class="wrap mk-head">
+    <div class="eyebrow">Staff only</div>
+    <h1>What students <em>can use</em>.</h1>
+    <p class="lede">Switch tools and choices on or off, preview the student page, then publish. Publishing writes <code>config.json</code> to the GitHub repository and the live site picks it up within a minute or two.</p>
+  </div>
+  <div class="wrap adm">
+    <div id="form">
+      <section class="card" data-sec="site">
+        <h2>Site <label class="sw"><input type="checkbox" data-k="site.open"> Open to students</label></h2>
+        <p class="note">When it is closed, students see only the message below.</p>
+        <div class="sub-h">Message when closed</div>
+        <textarea data-k="site.closedMessage"></textarea>
+        <div class="sub-h">Notice at the top of the page (leave empty for none)</div>
+        <textarea data-k="site.notice" placeholder="e.g. Hand in your 1:500 site model by Friday 12 December."></textarea>
+      </section>
+
+      <section class="card">
+        <h2>Map and 3D view</h2>
+        <div class="opts">
+          <label><input type="checkbox" data-k="map.streetMap"> Street map background (OpenStreetMap)</label>
+          <label><input type="checkbox" data-k="view.buildings"> Buildings in the 3D view</label>
+          <label><input type="checkbox" data-k="view.numbers"> Building numbers in the 3D view</label>
+          <label><input type="checkbox" data-k="view.buildingInfo"> Click a building for its levels</label>
+          <label><input type="checkbox" data-k="heightsTable"> Building numbers and the table of heights in every download</label>
+        </div>
+        <div class="sub-h">Square sizes students can choose</div>
+        <div class="chips" data-list="squares" data-all="squares" data-fmt="m"></div>
+        <label class="row">Starting square <select data-k="squareDefault" id="sqDef"></select></label>
+      </section>
+
+      <section class="card" data-sec="print">
+        <h2>3D print <label class="sw"><input type="checkbox" data-k="print.enabled"> Available</label></h2>
+        <div class="body">
+          <div class="sub-h">Scales</div>
+          <div class="chips" data-list="print.scales" data-all="printScales" data-fmt="scale"></div>
+          <div class="sub-h">Building footprint marks students can choose</div>
+          <div class="chips" data-list="print.marks" data-all="marks" data-fmt="marks"></div>
+          <div class="opts">
+            <label><input type="checkbox" data-k="print.platforms"> Level building platforms</label>
+            <label><input type="checkbox" data-k="print.exaggeration"> Exaggerated ground heights (×1.5, ×2)</label>
+            <label><input type="checkbox" data-k="print.roadsWater"> Let students switch roads and water off (otherwise always on)</label>
+          </div>
+          <label class="row">Most tiles per model <select data-k="print.maxTiles" data-num><option value="1">1 (one tile only)</option><option value="2">2 × 2</option><option value="3">3 × 3</option><option value="4">4 × 4</option></select></label>
+        </div>
+      </section>
+
+      <section class="card" data-sec="laser">
+        <h2>Laser-cut kit <label class="sw"><input type="checkbox" data-k="laser.enabled"> Available</label></h2>
+        <div class="body">
+          <div class="sub-h">Kinds of kit</div>
+          <div class="chips" data-list="laser.kinds" data-all="kinds" data-fmt="kinds"></div>
+          <div class="sub-h">Scales</div>
+          <div class="chips" data-list="laser.scales" data-all="laserScales" data-fmt="scale"></div>
+          <div class="sub-h">Boards</div>
+          <div class="chips" data-list="laser.boards" data-all="boards" data-fmt="boards"></div>
+          <div class="sub-h">Sheet sizes (match the laser cutter bed)</div>
+          <div class="chips" data-list="laser.sheets" data-all="sheets" data-fmt="sheets"></div>
+          <div class="opts">
+            <label><input type="checkbox" data-k="laser.platforms"> Level building platforms</label>
+            <label><input type="checkbox" data-k="laser.engrave"> Engraved building footprints</label>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" data-sec="plan">
+        <h2>Contour plan <label class="sw"><input type="checkbox" data-k="plan.enabled"> Available</label></h2>
+        <div class="body">
+          <div class="sub-h">Scales</div>
+          <div class="chips" data-list="plan.scales" data-all="planScales" data-fmt="scale"></div>
+          <div class="sub-h">Contour intervals</div>
+          <div class="chips" data-list="plan.intervals" data-all="intervals" data-fmt="m"></div>
+          <div class="sub-h">Files students can download</div>
+          <div class="chips" data-list="plan.formats" data-all="formats" data-fmt="formats"></div>
+          <div class="opts"><label><input type="checkbox" data-k="plan.spots"> Spot heights</label></div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="side">
+      <div class="card">
+        <div class="sub-h" style="margin-top:0">Status</div>
+        <p class="note" id="liveInfo">Loading the live settings…</p>
+        <div class="changes" id="changes"></div>
+        <p class="warn-line" id="problems" hidden></p>
+        <button type="button" class="btn" id="preview">Preview as a student</button>
+        <button type="button" class="btn primary" id="publish">Publish to the live site</button>
+        <button type="button" class="btn sm" id="download">Download config.json</button>
+        <button type="button" class="btn sm" id="revert">Undo changes</button>
+        <button type="button" class="btn sm" id="defaults">Everything on (defaults)</button>
+        <p class="status" id="status" role="status"></p>
+      </div>
+      <div class="card">
+        <div class="sub-h" style="margin-top:0">GitHub access</div>
+        <p class="note">Publishing needs a GitHub fine-grained token for the <b>SligoTown_Site_Models</b> repository with <i>Contents: read and write</i>. GitHub › Settings › Developer settings › Fine-grained tokens.</p>
+        <input type="password" id="token" placeholder="github_pat_…" autocomplete="off">
+        <label class="row" style="margin-top:8px"><input type="checkbox" id="remember"> Remember on this computer</label>
+        <p class="note">The token stays in this browser and goes only to api.github.com. Without it, use <i>Download config.json</i> and upload the file to the repository yourself.</p>
+      </div>
+    </aside>
+  </div>
+</main>
+<footer class="foot"><div class="wrap"><span>Students can't change these settings: they come from config.json in the repository.</span><span>Sligo Site Models · ATU Sligo</span></div></footer>
+<script src="js/common.js"></script>
+<script src="js/config.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

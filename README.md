@@ -5,6 +5,7 @@ A static website for fifth-year architecture students at ATU Sligo. Students put
 | Page | What it does |
 |---|---|
 | `index.html` | **Make a site model.** A map of the borough (relief or OpenStreetMap streets) with a square that students drag onto their site (40–500 m). Under the map is a 3D view of the square, with the ground and the buildings at their heights. Students can click a building for its number and heights. Then they choose an output and a scale. |
+| `admin.html` | Staff page: switch tools and choices on or off for students (see below) |
 | `guide.html` | How to use it, sizes at each scale, what each file is, the heights table and the data sources |
 
 ## The rule on buildings
@@ -19,6 +20,25 @@ Buildings are **shown on the website only**: in the 3D view, as massing. Footpri
   - **Height table:** the PDF's A4 pages after the plan list No., Use, Ground, Eaves, Roof, Top (all m OD), Height (m) and Source (survey or estimated).
 
 The same numbering is used in the plan, the laser kit, the 3D view, the PDF table and the CSV. Buildings are numbered in ten bands from the north edge of the square, west to east within each band. A building belongs to the square when its label point is inside it.
+
+## Admin page (`admin.html`)
+
+Staff use the admin page to choose what students can use. It isn't linked from the student pages and is marked `noindex`. The settings live in `config.json`, which the student page reads on every visit. Anything not in the file defaults to on (`js/config.js`).
+
+- **Site:** open or closed, a message for when it is closed, and a notice at the top of the page.
+- **Map and 3D view:** the street map, buildings in the 3D view, building numbers, click-for-levels, and building numbers with the heights table across all downloads.
+- **Square sizes** students can choose, and the starting square.
+- **3D print:** on or off, scales, footprint mark styles, level platforms, exaggerated heights, whether students can switch off roads and water, and the most tiles per model.
+- **Laser-cut kit:** on or off, kinds (hollow, solid, waffle), scales, boards, sheet sizes, level platforms and engraved footprints.
+- **Contour plan:** on or off, scales, contour intervals, which files students can download, and spot heights.
+
+To use it:
+
+- **Preview as a student** opens `index.html?preview=1` with the unsaved settings, from this browser only.
+- **Publish** writes `config.json` to the repository through the GitHub API, using a fine-grained token with *Contents: read and write* on this repository. The token is kept only in that browser, and only if *Remember* is ticked.
+- **No token:** use *Download config.json* and upload the file to the repository by hand.
+
+The settings decide what the page offers, but the site is static. A student who knows the browser developer tools could still get around them, so treat them as course settings, not security.
 
 ## Level building platforms (option)
 
